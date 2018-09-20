@@ -26,8 +26,8 @@ Deux solutions de connexion :
 2. avec un utilisateur "audit" :
 
 CAS 1 : Le plus simple est de créer une base dédiée "audit" et de lui donner tous les droits dessus (en plus des droits de lectures sur les autres bases)
-create database audit;
 ```
+create database audit;
 grant all privileges on audit.* to audit@'%';
 grant select on *.* to audit@'%';
 ```
