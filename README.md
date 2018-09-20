@@ -26,24 +26,25 @@ Deux solutions de connexion :
 
 CAS 1 : Le plus simple est de créer une base dédiée "audit" et de lui donner tous les droits dessus (en plus des droits de lectures sur les autres bases)
 create database audit;
+```
 grant all privileges on audit.* to audit@'%';
 grant select on *.* to audit@'%';
-
+```
 CAS 2 : Droits minimums
 * Si InnoDB n'est pas utilisé (statistiques inutiles) :
 
 "audit" doit être autorisé en lecture sur les bases du serveur
-
+```
 grant select on *.* to audit@'%' identified by 'PASSWORD';
-
+```
 TODO: voir les grants spécifiques nécessaires si on doit créer des procédures ou fonctions. ALTER ? CREATE ? EXECUTE ?
-
+```
 grant all privileges on <audit_database>.histaudit to audit@'%' identified by 'PASSWORD';
-
+```
 * Si InnoDB est utilisé et doit être audité, utiliser soit "root", soit un user qui doit avoir les droits d'administrateur
-
+```
 grant SUPER on *.* to audit@'%';
-
+```
 3. Lancer: "mysql -h [HOST] -u[USER] -p[PWD] --skip-column-names [base_table_histaudit|mysql] < audit_mysql_html.sql > fichier.html"
 
 NOTE : la syntaxe "< audit_mysql_html.sql" permet de quitter le script à la première erreur, alors que "-e source audit_mysql_html.sql"
