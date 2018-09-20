@@ -56,21 +56,21 @@ script que si une base (celle qui doit contenir la table histaudit) a été sél
 -----------
 Changelog
 
-  10/2013 v0.1 : Creation du script, reprise et automatisation des requêtes d'audit utilisees manuellement.
+	10/2013 v0.1 : Creation du script, reprise et automatisation des requêtes d'audit utilisees manuellement.
 
-  08/2015 v1.0 : fin phase 1 : affichage HTML des infos et ratios de base, sans InnoDB.
+	08/2015 v1.0 : fin phase 1 : affichage HTML des infos et ratios de base, sans InnoDB.
 
-  01/2016 v1.1 : ajout stats de base InnoDB (nécessite accès root ou "ALL PRIVILEGES")
+	01/2016 v1.1 : ajout stats de base InnoDB (nécessite accès root ou "ALL PRIVILEGES")
 
-  09/2016 v1.2 : création table histaudit et insertion param, tailles données, taille mémoire.
+	09/2016 v1.2 : création table histaudit et insertion param, tailles données, taille mémoire.
 
-  02/2017 v1.3 : ajout stat nombre de jointures sans indexes
+	02/2017 v1.3 : ajout stat nombre de jointures sans indexes
 
 	ajout stats table locks
 
-  01/2017      : affichage version en ORANGE si version modifiée depuis dernier audit
+	01/2017      : affichage version en ORANGE si version modifiée depuis dernier audit
 
-  2017         : ajout différence taille mémoire utilisée
+	2017         : ajout différence taille mémoire utilisée
 
-  04/2018 v1.4 : ajout des différences de tailles de données depuis dernier audit
+	04/2018 v1.4 : ajout des différences de tailles de données depuis dernier audit
 
