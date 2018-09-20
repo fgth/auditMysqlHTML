@@ -45,8 +45,10 @@ grant all privileges on <audit_database>.histaudit to audit@'%' identified by 'P
 ```
 grant SUPER on *.* to audit@'%';
 ```
-3. Lancer: "mysql -h [HOST] -u[USER] -p[PWD] --skip-column-names [base_table_histaudit|mysql] < audit_mysql_html.sql > fichier.html"
-
+3. Lancer:
+```
+mysql -h [HOST] -u[USER] -p[PWD] --skip-column-names [base_table_histaudit|mysql] < audit_mysql_html.sql > fichier.html"
+```
 NOTE : la syntaxe "< audit_mysql_html.sql" permet de quitter le script à la première erreur, alors que "-e source audit_mysql_html.sql"
 execute tout le script quoiqu'il arrive. Ici, la première requête étant un "create..if not exists", on est sûr de ne continuer le
 script que si une base (celle qui doit contenir la table histaudit) a été sélectionnée sur la ligne de commande. 
@@ -64,7 +66,7 @@ Changelog
 
   02/2017 v1.3 : ajout stat nombre de jointures sans indexes
 
-                 ajout stats table locks
+	ajout stats table locks
 
   01/2017      : affichage version en ORANGE si version modifiée depuis dernier audit
 
