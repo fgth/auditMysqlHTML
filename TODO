@@ -1,0 +1,80 @@
+-- ******   TODO LIST   ******
+-- ** ATTENTION : VOIR AUSSI LES TODOS AJOUTES LOCALEMENT DANS CHAQUE SECTION DU SCRIPT **
+
+-- ******************
+-- A ETUDIER : Y a-t-il des stats spécifiques à chaque bases par rapport aux stats globales du serveur ?
+--      Comme pour Postgresql, faut-il faire un audit par base en rappelant les stats global serveur pour chacune ?
+-- ******************
+
+-- TODO : ajouter des icônes/infobulles d'informations dans les tableaux (=> variable avec base64 image ?)
+--  dependant: TODO : Repérer et coloriser les modifications de valeurs de caches entre 2 audits
+--  dépendant: TODO : repérer changements de paramètres init entre 2 audits
+-- TODO : ajouter une information indiquant INNODB actif mais non utilisé
+--        (message "[!!] InnoDB is enabled but isn't being used" de MYSQLTUNER)
+--    --> voir "Répartition par type de stockage" : si le tableau ne contient pas "InnoDB", et que le InnoDB est activé, le mettre en orange dans section InnoDB
+-- TODO : intégrer fonction ci-dessous équivalente "pretty_size", plutôt que calculs avec IF...Go..Mo..Ko dans les requêtes
+-- !!!! Nécessite les droits alter et execute pour le user !!!!
+/*
+DROP FUNCTION IF EXISTS pretty_size;
+DELIMITER $$
+CREATE FUNCTION `pretty_size`(n FLOAT) RETURNS varchar(255)
+NOT DETERMINISTIC
+READS SQL DATA
+BEGIN
+DECLARE psize VARCHAR(255);
+SELECT 
+   IF (n = 0,
+       '0.00',
+       IF (n > 0,
+           IF (n > 1048576,
+               IF (n > 1073741824,
+                   concat('+',ROUND(n/1024/1024/1024,2),' Go'),
+                   concat('+',ROUND(n/1024/1024,2),' Mo')),
+               concat('+',ROUND(n/1024,2),' Ko')),
+           IF (n < -1048576,
+               IF (n < -1073741824,
+                   concat(ROUND(n/1024/1024/1024,2),' Go'),
+                   concat(ROUND(n/1024/1024,2),' Mo')),
+               concat(ROUND(n/1024,2),' Ko')))) INTO psize;
+RETURN psize;
+END $$
+DELIMITER ;
+*/
+
+-- TODO : Repérer si MyISAM est utilisé, pour conseiller (ou valider) la dévalidation du QUERY_CACHE
+--    --> voir "Répartition par type de stockage" : si le tableau contient uniquement "InnoDB", et que le QC est activé, le mettre en orange dans "Cache requêtes"
+-- TODO : fonction CouleurLimite vert-orange-rouge à créer (procédure stockée ?) => voir droits USER
+-- TODO : lister les users, avec leurs grants ? (= show grant for ...)
+-- TODO : indiquer (coloriser) si tmp_table_size > max_heap_table_size : ce dernier doit être au moins égal. L'augmenter si utilisation de beaucoup de tables memory_table
+-- TODO : pour mysq >= 5.6, ajouter liste des indexes inutilisés (performance_schema.table_io_waits_summary_by_index_usage)
+-- SELECT object_schema, object_name, index_name
+--   FROM performance_schema.table_io_waits_summary_by_index_usage
+--  WHERE index_name IS NOT NULL
+--    AND index_name != 'PRIMARY'
+--    AND count_star = 0
+--  ORDER BY object_schema, object_name;
+
+-- ******   TIPS   ***********
+-- *** Equivalents SHOW XXXX avec SELECT :
+--   SHOW GLOBAL VARIABLES LIKE "[%]<variable_name>[%]" 
+--      = SELECT variable_value FROM INFORMATION_SCHEMA.global_variables WHERE variable_name LIKE "[%]<variable_name>[%]"
+--      = SELECT @@GLOBAL.<variable_name>
+--
+--   SHOW GLOBAL STATUS LIKE "[%]<status_name>[%]" 
+--      = SELECT variable_value FROM INFORMATION_SCHEMA.global_status WHERE variable_name LIKE "[%]<variable_name>[%]"
+--
+-- *** Convertir valeur décimale + unité : 
+-- IF(variable_value > 1048576, IF(variable_value > 1073741824, round(variable_value/1024/1024/1024,2), round(variable_value/1024/1024,2)), round(variable_value/1024,2)), IF(variable_value > 1048576, IF(variable_value > 1073741824,' Go', ' Mo'), ' Ko')
+--
+-- *** Infos utilisateurs
+-- SELECT user.user, user.host, isup.privilege_type, isup.is_grantable from information_schema.user_privileges as isup, user where isup.grantee=concat('\'',user.user,'\'','@','\'',user.host,'\'') and user != 'root';
+--
+-- ### refaire le "SHOW GRANTS FOR" semble trop compliqué, beaucoup trop de cas à gérer avec les IF :
+-- select 'GRANT ', if (PRIVILEGE_TYPE='USAGE', concat(if (Select_priv='Y', 'SELECT ','') ,if (Insert_priv='Y', 'INSERT ','') ,if (Update_priv='Y', 'UPDATE ',''), 'ON ', Db, '.* ', 'TO ', User, '@', host), PRIVILEGE_TYPE) from db,information_schema.user_privileges where grantee=concat('\'',user,'\'','@','\'',host,'\'') and user='audit';
+-- ### alors comment faire ?
+
+-- ******   BUGS CONNUS A RESOUDRE  ***********
+-- Section REQUETES : si uptime < 1 jour, le nombre de jointure sans index par jour est délirant (ex : "38 (22959.44/jour)")
+--    02/18 requête patchée, à valider à l'usage
+-- Section InnoDB : si InnoDB non activé (variable ignore_builtin_innodb n'existe pas pour engine "InnoDB"), les requêtes renvoient "empty" et n'affichent donc rien.
+--
