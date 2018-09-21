@@ -16,7 +16,13 @@ Librement inspiré d'internet (Google can be your friend, reasonably used) et de
 * Inspired by: MySQLARd (http://gert.sos.be/demo/mysqlar)
 
 Que leurs auteurs soient remerciés.
+----------------------------------
+This script has been evolving since I checked MySQL databases. I started to code it in the same manner as the Oracle one (https://github.com/fsoyer/auditOracleHTML).
+It is - will be - not - never - finished.
 
+All ideas, contributions, propositions, fixes, updates, are welcome.
+It is provided as is, use it at your own risks - but I use it since years on production databases without issues.
+For a wider understanding, I'll translate parts in french step by step.
 ----------------------------------
 *********** USAGE ****************
 
