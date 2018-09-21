@@ -1,7 +1,7 @@
 # auditMysqlHTML
 Script to generate a MySQL/MariaDB audit report of performances in HTML
-
-Librement inspiré d'internet (Google can be your friend, reasonably used) et des scripts suivants :
+----------------------------------
+Freely inspired from internet shares (finally Google can be your friend, reasonably used) and especially this scripts :
 * mysqltuner.pl - Version 1.6.2.001
 * http://mysqltuner.com
 * Copyright (C) 2006-2015 Major Hayden - major@mhtx.net
@@ -15,16 +15,20 @@ Librement inspiré d'internet (Google can be your friend, reasonably used) et de
 * https://bugs.launchpad.net/mysql-tuning-primer
 * Inspired by: MySQLARd (http://gert.sos.be/demo/mysqlar)
 
-Que leurs auteurs soient remerciés.
+I would like to thank their authors for that.
+
 ----------------------------------
 This script has been evolving since I checked MySQL databases. I started to code it in the same manner as the Oracle one (https://github.com/fsoyer/auditOracleHTML).
 It is/will be probably not/never finished.
 
 All ideas, contributions, propositions, fixes, updates, are welcome.
+
 It is provided as is, use it at your own risks - but I use it since years on production databases without issues.
+
 For a wider understanding, I'll translate parts in french step by step.
+
 ----------------------------------
-*********** USAGE ****************
+# USAGE
 
 Le script crée une table d'historique d'audit ("histaudit") et une ou plusieurs procédures ou fonctions.
 Deux solutions de connexion :
