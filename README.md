@@ -1,5 +1,5 @@
 # auditMysqlHTML
-Script de génération d'un rapport d'audit MySQL au format HTML
+Script to generate a MySQL/MariaDB audit report of performances in HTML
 
 Librement inspiré d'internet (Google can be your friend, reasonably used) et des scripts suivants :
 * mysqltuner.pl - Version 1.6.2.001
