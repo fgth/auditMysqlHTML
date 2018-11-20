@@ -473,11 +473,11 @@ select '<div align=center><b><font color="WHITE">SECTION PERFORMANCES</font></b>
 select '<hr>';
 -- *************************************** Tables caches et ratios
 select '<table border=1 width=100% bgcolor="WHITE">';
-select '<tr><td bgcolor="#3399CC" align=center colspan=3><font color="WHITE"><b>Cache tables</b></font></td></tr>';
+select '<tr><td bgcolor="#3399CC" align=center colspan=3><font color="WHITE"><b>Cache tables (table[_open]_cache)</b></font></td></tr>';
 select '<tr><td bgcolor="WHITE" align=center width=40%><b>Variable</b></td><td bgcolor="WHITE" align=center><b>Valeur</b></td><td bgcolor="WHITE" align=center><b>Ratio d\'utilisation</b></td></tr>';
 -- show variables like 'table_cache'; (< 5.1.3)
 -- show variables like 'table_open_cache'; (> 5.1.3)
-select concat('<tr><td bgcolor="LIGHTBLUE" align=left>',gs.variable_name,'</td><td bgcolor="LIGHTBLUE" align=right>',gs.variable_value,'</td><td bgcolor="',CASE WHEN round((gs.variable_value/gv.variable_value)*100,0) > 90 AND round((gs.variable_value/gv.variable_value)*100,0) < 99 THEN 'ORANGE' WHEN round((gs.variable_value/gv.variable_value)*100,0) > 99 THEN '#FF0000' ELSE 'LIGHTBLUE' END,'" align=right>',IF (gv.variable_value > 0, round((gs.variable_value/gv.variable_value)*100,2), 0), '% de ',gv.variable_value,' (table[_open]_cache)</td></tr>') 
+select concat('<tr><td bgcolor="LIGHTBLUE" align=left>',gs.variable_name,'</td><td bgcolor="LIGHTBLUE" align=right>',gs.variable_value,'</td><td bgcolor="',CASE WHEN round((gs.variable_value/gv.variable_value)*100,0) > 90 AND round((gs.variable_value/gv.variable_value)*100,0) < 99 THEN 'ORANGE' WHEN round((gs.variable_value/gv.variable_value)*100,0) > 99 THEN '#FF0000' ELSE 'LIGHTBLUE' END,'" align=right>',IF (gv.variable_value > 0, round((gs.variable_value/gv.variable_value)*100,2), 0), '% de ',gv.variable_value,'</td></tr>') 
   FROM INFORMATION_SCHEMA.global_status gs, INFORMATION_SCHEMA.global_variables gv
   where gs.variable_name ='Open_tables' and (gv.variable_name = 'TABLE_CACHE' or gv.variable_name = 'TABLE_OPEN_CACHE');
 select concat('<tr><td bgcolor="LIGHTBLUE" align=left>',gs.variable_name, '</td><td bgcolor="LIGHTBLUE" align=right>',gs.variable_value,'</td><td bgcolor="LIGHTGREY" align=right><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></td></tr>' )
@@ -488,9 +488,9 @@ select '<br>';
 
 -- *************************************** Indexes caches et ratios
 select '<table border=1 width=100% bgcolor="WHITE">';
-select '<tr><td bgcolor="#3399CC" align=center colspan=3><font color="WHITE"><b>Cache indexes (Key cache)</b></font></td></tr>';
+select '<tr><td bgcolor="#3399CC" align=center colspan=3><font color="WHITE"><b>Cache indexes (key_buffer_size)</b></font></td></tr>';
 select '<tr><td bgcolor="WHITE" align=center width=40%><b>Statistique</b></td><td bgcolor="WHITE" align=center><b>Valeur</b></td><td bgcolor="WHITE" align=center><b>Ratio d\'utilisation</b></td></tr>';
-select concat('<tr><td bgcolor="LIGHTBLUE" align=left>',s.variable_name,'</td><td bgcolor="LIGHTBLUE" align=right>',round(s.variable_value/1024,2),' Mo</td><td bgcolor="',CASE WHEN round((s.variable_value*100/(v.variable_value/1024)),0) > 90 AND  round((s.variable_value*100/(v.variable_value/1024)),0) < 99 THEN 'ORANGE' WHEN round((s.variable_value*100/(v.variable_value/1024)),0) > 99 THEN '#FF0000' ELSE 'LIGHTBLUE' END,'" align=right>',round((s.variable_value*100/(v.variable_value/1024)),2),'% de ',round(v.variable_value/1024/1024,2),' Mo (key_buffer_size)','</td></tr>') FROM INFORMATION_SCHEMA.global_status s, INFORMATION_SCHEMA.global_variables v where s.variable_name in ('Key_blocks_used') and v.variable_name = 'key_buffer_size';
+select concat('<tr><td bgcolor="LIGHTBLUE" align=left>',s.variable_name,'</td><td bgcolor="LIGHTBLUE" align=right>',round(s.variable_value/1024,2),' Mo</td><td bgcolor="',CASE WHEN round((s.variable_value*100/(v.variable_value/1024)),0) > 90 AND  round((s.variable_value*100/(v.variable_value/1024)),0) < 99 THEN 'ORANGE' WHEN round((s.variable_value*100/(v.variable_value/1024)),0) > 99 THEN '#FF0000' ELSE 'LIGHTBLUE' END,'" align=right>',round((s.variable_value*100/(v.variable_value/1024)),2),'% de ',round(v.variable_value/1024/1024,2),' Mo','</td></tr>') FROM INFORMATION_SCHEMA.global_status s, INFORMATION_SCHEMA.global_variables v where s.variable_name in ('Key_blocks_used') and v.variable_name = 'key_buffer_size';
 select concat('<tr><td bgcolor="WHITE" align=left colspan=2>Ratio read hits</td></td><td bgcolor="LIGHTBLUE" align=right>',IF (rs.variable_value > 0, round(100 - (s.variable_value/rs.variable_value)*100,2), 0),'%</td></tr>') FROM INFORMATION_SCHEMA.global_status s, INFORMATION_SCHEMA.global_status rs where s.variable_name = 'Key_reads' and rs.variable_name = 'Key_read_requests';
 select concat('<td bgcolor="WHITE" align=left colspan=2>Ratio write hits</td><td bgcolor="LIGHTBLUE" align=right>',IF (rs.variable_value > 0, round(100 - (s.variable_value/rs.variable_value)*100,2), 0),'%</td><tr>') FROM INFORMATION_SCHEMA.global_status s, INFORMATION_SCHEMA.global_status rs where s.variable_name = 'Key_writes' and rs.variable_name = 'Key_write_requests';
 select '</td></tr></table>';
@@ -498,12 +498,12 @@ select '<br>';
 
 -- *************************************** Query cache
 select '<table border=1 width=100% bgcolor="WHITE">';
-select '<tr><td bgcolor="#3399CC" align=center colspan=3><font color="WHITE"><b>Cache requ&ecirc;tes (Query cache)</b></font></td></tr>';
+select '<tr><td bgcolor="#3399CC" align=center colspan=3><font color="WHITE"><b>Cache requ&ecirc;tes (query_cache_size)</b></font></td></tr>';
 select '<tr><td bgcolor="WHITE" align=center width=40%><b>Statistique</b></td><td bgcolor="WHITE" align=center><b>Valeur</b></td><td bgcolor="WHITE" align=center><b>Ratio d\'utilisation</b></td></tr>'; -- \'
 
 SELECT IF(q.variable_value = 'YES',
 		IF(v.variable_value > 0,
-		concat('<tr><td bgcolor="LIGHTBLUE" align=left>','M&eacute;moire utilis&eacute;e (valeur instantan&eacute;e)','</td><td bgcolor="LIGHTBLUE" align=right>',round((v.variable_value-s.variable_value)/1024/1024,2),' Mo</td><td bgcolor="', CASE WHEN round(((v.variable_value-s.variable_value)/v.variable_value)*100,0) > 90 AND round(((v.variable_value-s.variable_value)/v.variable_value)*100,0) < 99 THEN 'ORANGE' WHEN round(((v.variable_value-s.variable_value)/v.variable_value)*100,0) > 99 THEN '#FF0000' ELSE 'LIGHTBLUE' END,'" align=right>', round(((v.variable_value-s.variable_value)/v.variable_value)*100,2),'% de ',  round(v.variable_value/1024/1024,2),' Mo (query_cache_size)</td></tr>'),
+		concat('<tr><td bgcolor="LIGHTBLUE" align=left>','M&eacute;moire utilis&eacute;e (valeur instantan&eacute;e)','</td><td bgcolor="LIGHTBLUE" align=right>',round((v.variable_value-s.variable_value)/1024/1024,2),' Mo</td><td bgcolor="', CASE WHEN round(((v.variable_value-s.variable_value)/v.variable_value)*100,0) > 90 AND round(((v.variable_value-s.variable_value)/v.variable_value)*100,0) < 99 THEN 'ORANGE' WHEN round(((v.variable_value-s.variable_value)/v.variable_value)*100,0) > 99 THEN '#FF0000' ELSE 'LIGHTBLUE' END,'" align=right>', round(((v.variable_value-s.variable_value)/v.variable_value)*100,2),'% de ',  round(v.variable_value/1024/1024,2),' Mo</td></tr>'),
 		'<tr><td bgcolor="ORANGE">Cache activ&eacute; (have_query_cache=YES) mais query_cache_size=0</td><td bgcolor="ORANGE" align=right>0</td><td bgcolor="LIGHTGREY"> </td></tr>'),
 		'<tr><td bgcolor="ORANGE">Cache non activ&eacute;</td><td bgcolor="ORANGE">N/A</td><td bgcolor="ORANGE">N/A</td></tr>')
 	FROM INFORMATION_SCHEMA.global_status s, INFORMATION_SCHEMA.global_variables v, INFORMATION_SCHEMA.global_variables q
