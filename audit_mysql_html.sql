@@ -396,6 +396,7 @@ IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'), */
 'read_rnd_buffer_size',
 'sort_buffer_size', 
 'thread_stack',
+'thread_cache_size',
 'join_buffer_size',
 'binlog_cache_size',
 'max_heap_table_size',
@@ -445,6 +446,7 @@ insert into histaudit SELECT DATE_FORMAT(NOW(),'%Y-%m-%d'), 'PARAM', variable_na
 'query_cache_type',
 'query_cache_size',
 'query_cache_limit',
+'have_query_cache',
 'key_buffer_size',
 'innodb_buffer_pool_size',
 'innodb_buffer_pool_instances',
@@ -512,12 +514,13 @@ SELECT IF(q.variable_value = 'YES',
 	and q.variable_name = 'have_query_cache';
 SELECT IF(q.variable_value = 'YES' AND v.variable_value > 0,
         IF (sqch.variable_value > 0 AND sq.variable_value > 0,
-		  concat('<tr><td bgcolor="LIGHTBLUE" align=left>','Ratio QC hits','</td><td bgcolor="LIGHTBLUE" align=right>', sqch.variable_value,'</td><td bgcolor="',IF (round((sqch.variable_value/sq.variable_value)*100,0) <= 50,'ORANGE','LIGHTBLUE'),'" align=right>', round((sqch.variable_value/sq.variable_value)*100,2),'% de ', sq.variable_value, ' requ&ecirc;tes','</td></tr>'),
+		  concat('<tr><td bgcolor="LIGHTBLUE" align=left>','Ratio QC hits','</td><td bgcolor="LIGHTBLUE" align=right>', sqch.variable_value,'</td><td bgcolor="',IF (round((sqch.variable_value/(sqch.variable_value+sq.variable_value))*100,0) <= 50,'ORANGE','LIGHTBLUE'),'" align=right>', round((sqch.variable_value/(sqch.variable_value+sq.variable_value))*100,2),'% de ', sq.variable_value, ' requ&ecirc;tes cachables','</td></tr>'),
           '<tr><td bgcolor="ORANGE">Ratio QC hits</td><td bgcolor="ORANGE">0</td><td bgcolor="ORANGE" align=center>Aucune requ&ecirc;te sur la p&eacute;riode</td></tr>'),
 		'')
 	FROM INFORMATION_SCHEMA.global_status sqch, INFORMATION_SCHEMA.global_status sq, INFORMATION_SCHEMA.global_variables v, INFORMATION_SCHEMA.global_variables q
 	WHERE sqch.variable_name = 'Qcache_hits'
-	and sq.variable_name = 'questions'
+--	and sq.variable_name = 'Com_select' -- for "all queries" (even not cacheable) hit ratio
+	and sq.variable_name = 'Qcache_inserts' -- hit ratio only for cacheable queries
 	and v.variable_name = 'query_cache_size'
 	and q.variable_name = 'have_query_cache';
 	

@@ -46,7 +46,7 @@ DELIMITER ;
 -- TODO : fonction CouleurLimite vert-orange-rouge à créer (procédure stockée ?) => voir droits USER
 -- TODO : lister les users, avec leurs grants ? (= show grant for ...)
 -- TODO : indiquer (coloriser) si tmp_table_size > max_heap_table_size : ce dernier doit être au moins égal. L'augmenter si utilisation de beaucoup de tables memory_table
--- TODO : pour mysq >= 5.6, ajouter liste des indexes inutilisés (performance_schema.table_io_waits_summary_by_index_usage)
+-- TODO : pour mysql >= 5.6, ajouter liste des indexes inutilisés (performance_schema.table_io_waits_summary_by_index_usage)
 -- SELECT object_schema, object_name, index_name
 --   FROM performance_schema.table_io_waits_summary_by_index_usage
 --  WHERE index_name IS NOT NULL

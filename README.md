@@ -25,7 +25,7 @@ All ideas, contributions, propositions, fixes, updates, are welcome.
 
 It is provided as is, use it at your own risks - but I use it since years on production databases without issues.
 
-For a wider understanding, I'll translate parts in french step by step.
+For a wider understanding, I'll translate parts in french to english step by step.
 
 ----------------------------------
 # USAGE
