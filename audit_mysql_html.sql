@@ -69,6 +69,7 @@ insert into histaudit SELECT DATE_FORMAT(NOW() - INTERVAL 1 DAY,'%Y-%m-%d'), 'PA
 'query_cache_type',
 'query_cache_size',
 'query_cache_limit',
+'have_query_cache',
 'key_buffer_size',
 'innodb_buffer_pool_size',
 'innodb_buffer_pool_instances',
@@ -403,6 +404,12 @@ IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'), */
 'tmp_table_size')
 /*   and variable_name = hist.object_name */
    UNION
+SELECT concat('<tr><td bgcolor="LIGHTBLUE" align=left>',variable_name,'</td><td bgcolor="',
+ IF (substring(@@version,1,3) > 5.7, 'RED" align=right> (deprecated since 5.7.20) ','LIGHTBLUE" align=right>'),
+ variable_value,'</td></tr>') 
+   FROM INFORMATION_SCHEMA.global_variables
+   where variable_name = 'have_query_cache'
+   UNION
 -- variables in number 
 SELECT concat('<tr><td bgcolor="LIGHTBLUE" align=left>',variable_name,'</td><td bgcolor="',
  'LIGHTBLUE',
@@ -505,7 +512,7 @@ select '<tr><td bgcolor="WHITE" align=center width=40%><b>Statistique</b></td><t
 
 SELECT IF(q.variable_value = 'YES',
 		IF(v.variable_value > 0,
-		concat('<tr><td bgcolor="LIGHTBLUE" align=left>','M&eacute;moire utilis&eacute;e (valeur instantan&eacute;e)','</td><td bgcolor="LIGHTBLUE" align=right>',round((v.variable_value-s.variable_value)/1024/1024,2),' Mo</td><td bgcolor="', CASE WHEN round(((v.variable_value-s.variable_value)/v.variable_value)*100,0) > 90 AND round(((v.variable_value-s.variable_value)/v.variable_value)*100,0) < 99 THEN 'ORANGE' WHEN round(((v.variable_value-s.variable_value)/v.variable_value)*100,0) > 99 THEN '#FF0000' ELSE 'LIGHTBLUE' END,'" align=right>', round(((v.variable_value-s.variable_value)/v.variable_value)*100,2),'% de ',  round(v.variable_value/1024/1024,2),' Mo</td></tr>'),
+		concat('<tr><td bgcolor="LIGHTBLUE" align=left>','M&eacute;moire utilis&eacute;e (<b>valeur instantan&eacute;e</b>)','</td><td bgcolor="LIGHTBLUE" align=right>',round((v.variable_value-s.variable_value)/1024/1024,2),' Mo</td><td bgcolor="', CASE WHEN round(((v.variable_value-s.variable_value)/v.variable_value)*100,0) > 90 AND round(((v.variable_value-s.variable_value)/v.variable_value)*100,0) < 99 THEN 'ORANGE' WHEN round(((v.variable_value-s.variable_value)/v.variable_value)*100,0) > 99 THEN '#FF0000' ELSE 'LIGHTBLUE' END,'" align=right>', round(((v.variable_value-s.variable_value)/v.variable_value)*100,2),'% de ',  round(v.variable_value/1024/1024,2),' Mo</td></tr>'),
 		'<tr><td bgcolor="ORANGE">Cache activ&eacute; (have_query_cache=YES) mais query_cache_size=0</td><td bgcolor="ORANGE" align=right>0</td><td bgcolor="LIGHTGREY"> </td></tr>'),
 		'<tr><td bgcolor="ORANGE">Cache non activ&eacute;</td><td bgcolor="ORANGE">N/A</td><td bgcolor="ORANGE">N/A</td></tr>')
 	FROM INFORMATION_SCHEMA.global_status s, INFORMATION_SCHEMA.global_variables v, INFORMATION_SCHEMA.global_variables q
@@ -514,7 +521,7 @@ SELECT IF(q.variable_value = 'YES',
 	and q.variable_name = 'have_query_cache';
 SELECT IF(q.variable_value = 'YES' AND v.variable_value > 0,
         IF (sqch.variable_value > 0 AND sq.variable_value > 0,
-		  concat('<tr><td bgcolor="LIGHTBLUE" align=left>','Ratio QC hits','</td><td bgcolor="LIGHTBLUE" align=right>', sqch.variable_value,'</td><td bgcolor="',IF (round((sqch.variable_value/(sqch.variable_value+sq.variable_value))*100,0) <= 50,'ORANGE','LIGHTBLUE'),'" align=right>', round((sqch.variable_value/(sqch.variable_value+sq.variable_value))*100,2),'% de ', sq.variable_value, ' requ&ecirc;tes cachables','</td></tr>'),
+		  concat('<tr><td bgcolor="LIGHTBLUE" align=left>','Ratio QC hits','</td><td bgcolor="LIGHTBLUE" align=right>', sqch.variable_value,' hits</td><td bgcolor="',IF (round((sqch.variable_value/(sqch.variable_value+sq.variable_value))*100,0) <= 50,'ORANGE','LIGHTBLUE'),'" align=right>', round((sqch.variable_value/(sqch.variable_value+sq.variable_value))*100,2),'% de ', sq.variable_value, ' requ&ecirc;tes cachables','</td></tr>'),
           '<tr><td bgcolor="ORANGE">Ratio QC hits</td><td bgcolor="ORANGE">0</td><td bgcolor="ORANGE" align=center>Aucune requ&ecirc;te sur la p&eacute;riode</td></tr>'),
 		'')
 	FROM INFORMATION_SCHEMA.global_status sqch, INFORMATION_SCHEMA.global_status sq, INFORMATION_SCHEMA.global_variables v, INFORMATION_SCHEMA.global_variables q
