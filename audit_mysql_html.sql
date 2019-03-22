@@ -1,5 +1,5 @@
 -- AUDIT BASES MYSQL
--- v1.4
+-- v1.5
 -- Compatible MySQL 5.0.6 minimum (information_schema.global_status), MariaDB 10
 -- (c) 2013, Frank Soyer <frank.soyer@gmail.com>
 
@@ -17,6 +17,9 @@
 -- http://www.gnu.org/copyleft/gpl.html
 
 -- ================================================= SCRIPT D'AUDIT =========================================
+
+SET @tips := 'iVBORw0KGgoAAAANSUhEUgAAABMAAAATCAYAAAByUDbMAAAABmJLR0QAAAAAAAD5Q7t/AAAACXBIWXMAAAsQAAALEAGtI711AAAACXZwQWcAAAATAAAAEwDxf4yuAAACDElEQVQ4y62ULXDbQBBGnzsFK2YxHzyoMJk50NBhCWugYcpCA0PDEmjosphF0DBmEqvgwSs7MS1TgSz5v9OZdmd2NKNZvfv20+4Nmqbhf8XXcy9L5xpfFpTlGlfmaPiFxCNsMiZJppgkJbF2cPzd4FjZZrNpPpZPRHySJoIxYIzgveIc5KWCXHNz/8xkMhlchGWrH81qMWd+L6SpgOxVKug281xZZcrtw4LZ7FsP7Ntcr7MmW855fhoyHIFE0WEPEVDXiMJ4LJgY3t7mxLFtOoVfOo9Wi+88zOUENDCuT4kiEBABM4LZVHhfPFI61/QwV6yxxmOtnIB8qPvsgCIgkXCdQFwXuGJDDyvyjOvxoUcdaD86IEJfm15BkX/sYL4ssFa4FCY+8k+3T4F4CN7tKQsakMusy6Gtf1qFHSyWGA26OxFovD1RZOKIxtsDdaogw3gHM0nKT7edo7o+C+xAWtfbOiUoeA/GTnawdDyjKLbKjoAHXdV1P7woEJTSQTq+2cFsOsV5Q+mUqgKtQEN9AtUKqqqFhKoFhSjFpnvKEmsHtw+vLJeKd4oGbYEVhHwEQPgctb5uQZWHrIC7+Uu/9Gd3czZtB7L7/Z3ZYa+1bAO3j4e7efbWeF88EtcF6VW7NhJBFVqzu9bu5i9/vjW6KJ1rXLGhyD/w5YaggVhiTDIhHd9g08nf3Wf/Er8BAI4wKLDf6EwAAAAfelRYdENyZWF0aW9uIFRpbWUAAHjaMzDTNzLUNzABAAb7AYwMyT+gAAAALnpUWHRTb2Z0d2FyZQAAeNrzTUwuys9NTclMVHDLLEotzy/KLlbwjVAwMjAwAQCWLgl6ZrFa0gAAAABJRU5ErkJggg==';
+SET @info := 'R0lGODlhFAAUAOfAAD+JSDyVQEqTTFqTZkedQ0eeQ1CjRVKlRmScdWaccGibdVepRmSlUVqqSV2pUlytSG6jfXWjf2OxTGayS2SzSW+ueXGxVmqzWXGyb2y3TW22Vm64TnC6TXC7T3y2YX+2bXq2fna+UHu5c323gom2b3e/Unm+W3q+X328cHnBUYS8Y3rBUZ+uooe5fIO8gn3EUoHAb4W+f4DDYYPBbn/FU6OyqITBcX/GUYDGU4LEYZK+coHHVILIU4jCgI7DZYfEcZK/i6q2pYvDgae3qZXCdIPLUqi3rIrHaofJYo/EfYvHco7FgZDDkIrKXojMVYjNVYnNVZHIgpTGkZXGkYzPVqe/r7O9qZjIko/RV6DJd7O/rJrKk5vPYJzKlZTSYJPUV5PVVpPVV5/KpLLDsqPJppPWVp/MmpXWWLPEsrnDraHMpKLNo6LNpKTOpaXPpbfItp3ZYqrOs6fRornKtqnQsZ3dWq/Qr5/eWqrYeaLdZarbZLDSr6/Ss6/SubDSuMHMxcXLxbHTtaPhWsbMxbLVrLLUtsLOxbLVtrPVtqved7nXoLXWvrnVvbnXu7ranM3Rx8nUt8rSysvSyb3cn8/TyMvWuK/mbL3dna7rW8bfy9zX3sjgzd3Z4cnhzcnhzt3a4d7a4bvzYOLe47/3X+Tg5dbqw+fi5dDvq+Tk5Ojj5+Xl5cb8Y+bm5unl6Nnr3url6tvr4Orp6+7p7O7q7ezr7ezs7O7t7u7u7ubx6Ojy6vDw8PHx8fH38/f29/f5+Pr7+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////yH+EUNyZWF0ZWQgd2l0aCBHSU1QACH5BAEKAP8ALAAAAAAUABQAAAj+AP8JHEiwoMGDCBMKlPWnShVDsxQK1FUDQR9XsBZBMLIroSkFcTZ54pUrUyc/EVodrDWATiA+uIABY4So0KEEtwyyqCBGzZpGwHyRcdOGzYghvQimAgCCiRQzcvbY6bLlyhQXAl4RBBQAQ4wehH7JBBJliRARBSIRHEPAAQoYM5LIbKHkh40LB94QRGOggYYTMo7I/IAkh4kJD+YQHLRAwoYSNJrI9PBkx4oOFCQRFMUgQwgcULzIVBGGCo8UFkgVDMLhhZMvcGT6uHOGyg0ttgqqIlEES55TMktZqlOGCKuDmnSASaTI0aVJeARlAZUQlRUumEKtGqUnDSqJtDgNPYJUidKnWBLTq1cYEAA7';
 
 -- *************************************** Table historique d'audit *********************
 -- drop table if exists histaudit;
@@ -721,19 +724,25 @@ select '</table>'; -- </td></tr>
 select '<br>';
 
 --  *************************************** Section INNODB **************************
--- BUGS
--- : si InnoDB non activé (variable ignore_builtin_innodb n'existe pas pour engine "InnoDB"), les requêtes renvoie "empty" et n'affiche donc rien. Comment forcer des cellules vides (couleur grise)?
--- : read bits peut être incohérent
-
 select '<hr>';
 select '<div align=center><b><font color="WHITE">SECTION INNODB</font></b></div>';
 select '<hr>';
 
 select '<table border=1 width=100% bgcolor="WHITE">';
+select '<tr><td bgcolor="#3399CC" align=center colspan=2><table border=0 width=100%><tr><td width=2% Title="La statistique Innodb_log_waits indique le nombre de fois o&ugrave; le buffer a &eacute;t&eacute; trop petit pour le nombre d\'op&eacute;rations &agrave; traiter. Si cette valeur est sup&eacute;rieure &agrave; 0, augmenter la valeur de INNODB_LOG_BUFFER_SIZE."><img src="data:image/gif;base64,',@tips,'"></td><td align=center><font color="WHITE"><b>InnoDB log waits</b></font></td></tr></table></td></tr>';
+select '<tr><td bgcolor="WHITE" align=center width=40%><b>Statistique</b></td><td bgcolor="WHITE" align=center><b>Valeur</b></td></tr>';
+select '<tr><td bgcolor="LIGHTBLUE" align=left>',gs.variable_name, '</td>', concat('<td bgcolor=', CASE WHEN ilb.variable_value < gs.variable_value > 0 THEN '"ORANGE"' WHEN gs.variable_value > ilb.variable_value THEN '"RED"' ELSE '"#33FF33"' END, ' align=right>'), gs.variable_value, ' </td><tr>'
+  FROM INFORMATION_SCHEMA.global_status gs, INFORMATION_SCHEMA.global_variables ilb
+  where gs.variable_name = 'Innodb_log_waits'
+  and ilb.variable_name = 'INNODB_LOG_BUFFER_SIZE';
+select '</table>';
+select '<br>';
+
+select '<table border=1 width=100% bgcolor="WHITE">';
 select '<tr><td bgcolor="#3399CC" align=center colspan=3><font color="WHITE"><b>InnoDB</b></font></td></tr>';
 select '<tr><td bgcolor="WHITE" align=center width=40%><b>Activ&eacute; ?</b></td><td bgcolor="WHITE" align=center><b>Utilis&eacute; ?</b></td><td bgcolor="WHITE" align=center><b>Volumes</b></td></tr>';
 
-select concat('<tr><td align=left bgcolor="', IF(sq.variable_value = 'ON','ORANGE','#33FF33'),'">', IF(sq.variable_value = 'ON','NO','YES'), '</td><td bgcolor="',IF(sq.variable_value = 'ON','LIGHTGREY','#33FF33'),'">', IF(SUM(it.DATA_LENGTH+it.INDEX_LENGTH) > 0,'YES','NO'), '</td><td bgcolor="',IF(sq.variable_value = 'ON','LIGHTGREY','LIGHTBLUE'),'" align=right>', IF(SUM(it.DATA_LENGTH+it.INDEX_LENGTH) > 0,concat('Datas: ',round(SUM(it.DATA_LENGTH)/1024/1024,2),' Mo, Indexes: ',round(SUM(it.INDEX_LENGTH)/1024/1024,2),' Mo'),'Ajouter skip-innodb &agrave: la configuration'), '</td></tr>')
+select concat('<tr><td align=left bgcolor="', IF(sq.variable_value = 'ON','ORANGE','#33FF33'),'">', IF(sq.variable_value = 'ON','NO','YES'), '</td><td bgcolor="',IF(sq.variable_value = 'ON','LIGHTGREY','#33FF33'),'">', IF(SUM(it.DATA_LENGTH+it.INDEX_LENGTH) > 0,'YES','NO'), '</td><td bgcolor="',IF(sq.variable_value = 'ON','LIGHTGREY','LIGHTBLUE'),'" align=right>', IF(SUM(it.DATA_LENGTH+it.INDEX_LENGTH) > 0,concat('Datas: ',round(SUM(it.DATA_LENGTH)/1024/1024,2),' Mo, Indexes: ',round(SUM(it.INDEX_LENGTH)/1024/1024,2),' Mo'),'Ajouter skip-innodb &agrave; la configuration'), '</td></tr>')
   from INFORMATION_SCHEMA.global_variables sq, information_schema.TABLES it
   where sq.variable_name = 'ignore_builtin_innodb'
   and TABLE_SCHEMA NOT IN ('information_schema', 'performance_schema', 'mysql')
