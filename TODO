@@ -6,9 +6,7 @@
 --      Comme pour Postgresql, faut-il faire un audit par base en rappelant les stats global serveur pour chacune ?
 -- ******************
 
--- TODO : ajouter des icônes/infobulles d'informations dans les tableaux (=> variable avec base64 image ?)
---  dependant: TODO : Repérer et coloriser les modifications de valeurs de caches entre 2 audits
---  dépendant: TODO : repérer changements de paramètres init entre 2 audits
+-- TODO : repérer changements de paramètres init entre 2 audits
 -- TODO : ajouter une information indiquant INNODB actif mais non utilisé
 --        (message "[!!] InnoDB is enabled but isn't being used" de MYSQLTUNER)
 --    --> voir "Répartition par type de stockage" : si le tableau ne contient pas "InnoDB", et que le InnoDB est activé, le mettre en orange dans section InnoDB
@@ -74,7 +72,4 @@ DELIMITER ;
 -- ### alors comment faire ?
 
 -- ******   BUGS CONNUS A RESOUDRE  ***********
--- Section REQUETES : si uptime < 1 jour, le nombre de jointure sans index par jour est délirant (ex : "38 (22959.44/jour)")
---    02/18 requête patchée, à valider à l'usage
--- Section InnoDB : si InnoDB non activé (variable ignore_builtin_innodb n'existe pas pour engine "InnoDB"), les requêtes renvoient "empty" et n'affichent donc rien.
 --

@@ -121,7 +121,7 @@ select '<div align=center><b><font color="WHITE">SECTION INFORMATIONS</font></b>
 select '<hr>';
 -- *************************************** Informations générales
 select '<table border=1 width=100% bgcolor="WHITE">';
-
+select @last_audit := histaudit.date_audit from histaudit where date_audit < DATE_FORMAT(NOW(),'%Y-%m-%d') group by histaudit.date_audit order by 1 desc limit 1;
 select '<tr><td bgcolor="#3399CC" align=center colspan=3><font color="WHITE"><b>Informations g&eacute;n&eacute;rales</b></font></td></tr>';
 select '<tr><td width=20%>Version</td>';
 select '<td bgcolor="',IF(histaudit.valeur <> @@version, 'ORANGE', 'LIGHTBLUE'),'" colspan=2>'
@@ -374,16 +374,11 @@ select '<table border=1 width=100% bgcolor="WHITE">';
 select '<tr><td bgcolor="#3399CC" align=center colspan=2><font color="WHITE"><b>Valeurs des caches et buffers</b></font></td></tr>';
 select '<tr><td bgcolor="WHITE" align=center width=40%><b>Cache</b></td><td bgcolor="WHITE" align=center><b>Valeur</b></td></tr>';
 -- variables in size
-SELECT concat('<tr><td bgcolor="LIGHTBLUE" align=left>',variable_name,'</td><td bgcolor="',
- 'LIGHTBLUE',
-/*
--- ne fonctionne pas car le LIMIT 1 sur histaudit ne ramère qu'une seule ligne ! Comment ramener tous les paramètres du dernier audit ?
-IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'), */
-'" align=right>', IF(variable_value > 1048576, ROUND(variable_value/1024/1024,2), ROUND(variable_value/1024,2)),IF(variable_value > 1048576,' Mo',' Ko'),'</td></tr>') 
+SELECT concat('<tr><td bgcolor="',IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'),'" align=left>',variable_name,'</td><td bgcolor="',
+ 'LIGHTBLUE','" align=right>', IF(variable_value > 1048576, ROUND(variable_value/1024/1024,2), ROUND(variable_value/1024,2)),IF(variable_value > 1048576,' Mo',' Ko'),'</td></tr>') 
    FROM INFORMATION_SCHEMA.global_variables
--- -
-/* ,(select histaudit.object_name, histaudit.valeur from histaudit where histaudit.object_type='PARAM' and histaudit.date_audit < DATE_FORMAT(NOW(),'%Y-%m-%d') order by histaudit.date_audit DESC LIMIT 1) hist */
--- -
+,(select histaudit.object_name, histaudit.valeur from histaudit where histaudit.object_type='PARAM' and histaudit.date_audit = @last_audit) hist
+
    where variable_name in (
 'query_cache_type',
 'query_cache_size',
@@ -405,30 +400,29 @@ IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'), */
 'binlog_cache_size',
 'max_heap_table_size',
 'tmp_table_size')
-/*   and variable_name = hist.object_name */
+and variable_name = hist.object_name
    UNION
-SELECT concat('<tr><td bgcolor="LIGHTBLUE" align=left>',variable_name,'</td><td bgcolor="',
+SELECT concat('<tr><td bgcolor="',IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'),'" align=left>',variable_name,'</td><td bgcolor="',
  IF (substring(@@version,1,3) > 5.7, 'RED" align=right> (deprecated since 5.7.20) ','LIGHTBLUE" align=right>'),
  variable_value,'</td></tr>') 
    FROM INFORMATION_SCHEMA.global_variables
+,(select histaudit.object_name, histaudit.valeur from histaudit where histaudit.object_type='PARAM' and histaudit.date_audit = @last_audit) hist
    where variable_name = 'have_query_cache'
+and variable_name = hist.object_name
    UNION
 -- variables in number 
-SELECT concat('<tr><td bgcolor="LIGHTBLUE" align=left>',variable_name,'</td><td bgcolor="',
+SELECT concat('<tr><td bgcolor="',IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'),'" align=left>',variable_name,'</td><td bgcolor="',
  'LIGHTBLUE',
-/*
- IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'), */
 '" align=right>',variable_value,'</td></tr>') 
    FROM INFORMATION_SCHEMA.global_variables
--- -
-/* ,(select histaudit.object_name, histaudit.valeur from histaudit where histaudit.object_type='PARAM' and histaudit.date_audit < DATE_FORMAT(NOW(),'%Y-%m-%d') order by histaudit.date_audit DESC LIMIT 1) hist */
--- -
-   where variable_name in ('max_connections',
+,(select histaudit.object_name, histaudit.valeur from histaudit where histaudit.object_type='PARAM' and histaudit.date_audit = @last_audit) hist
+   where variable_name in (
+'max_connections',
 'table_cache',
 'table_open_cache')
-/*   and variable_name = hist.object_name */
+and variable_name = hist.object_name
    UNION
--- variables to check by other(s) variable(s) values(s)
+-- variables to validate by other(s) variable(s) values(s)
  SELECT concat('<tr><td bgcolor="LIGHTBLUE" align=left>',gvi.variable_name,
                   '</td><td bgcolor="',
                   IF(cast(gvs.variable_value/(1024*1024*1024) as unsigned) > gvi.variable_value,
