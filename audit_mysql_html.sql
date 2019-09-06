@@ -121,7 +121,10 @@ select '<div align=center><b><font color="WHITE">SECTION INFORMATIONS</font></b>
 select '<hr>';
 -- *************************************** Informations générales
 select '<table border=1 width=100% bgcolor="WHITE">';
+-- hide variable assignation
+select '<!--';
 select @last_audit := histaudit.date_audit from histaudit where date_audit < DATE_FORMAT(NOW(),'%Y-%m-%d') group by histaudit.date_audit order by 1 desc limit 1;
+select '-->';
 select '<tr><td bgcolor="#3399CC" align=center colspan=3><font color="WHITE"><b>Informations g&eacute;n&eacute;rales</b></font></td></tr>';
 select '<tr><td width=20%>Version</td>';
 select '<td bgcolor="',IF(histaudit.valeur <> @@version, 'ORANGE', 'LIGHTBLUE'),'" colspan=2>'
@@ -129,7 +132,8 @@ select '<td bgcolor="',IF(histaudit.valeur <> @@version, 'ORANGE', 'LIGHTBLUE'),
       and histaudit.object_type='VERS' and histaudit.object_name='version'
     order by histaudit.date_audit DESC LIMIT 1) histaudit) histaudit;
 select 'MySQL ', @@version, ' (OS : ', @@version_compile_os,')';
-select @vers := (substring(@@version,5));
+-- for uniq assignation, use set instead select. It doesn't display a query result
+set @vers := (substring(@@version,5)); 
 select '</td></tr>';
 select '<tr><td width=20%>Uptime</td>';
 -- uptime to date : J = sec DIV 86400, RESTEH := sec MOD 86400, H := RESTEH DIV 3600, RESTEM := RESTEH MOD 3600 M := RESTEM DIV 60 S := RESTEM MOD 60
@@ -150,6 +154,21 @@ insert into histaudit SELECT DATE_FORMAT(NOW(),'%Y-%m-%d'), 'VERS', 'OSversion',
 -- ************************************** Ratio read/write
 select '<br/><table border=1 width=100% bgcolor="WHITE">';
 select '<tr><td bgcolor="#3399CC" align=center colspan=2><font color="WHITE"><b>Ratio reads / writes</b></font></td></tr>';
+
+
+-- A TESTER : REQUETE CONDITIONNELLE VERSION 5 OU 8
+-- SELON VARIABLE @majorver, interroger INFORMATION_SCHEMA (5) ou PERFORMANCE_SCHEMA (8) PAR PREPARE SQL
+-- INSTRUCTIONS :
+-- set @rq:=(select "select ? + 1 as n");
+-- prepare s from @rq;
+-- set @a:=1;
+-- execute s using @a;
+-- 
+-- DONC, TESTER AVEC UN SELECT POUR @rq :
+-- select @rq := IF(@majorver > 5, "select variable_value from PERFORMANCE_SCHEMA.global_status gsq where gsq.variable_name = 'Questions'", "select variable_value from INFORMATION_SCHEMA.global_status gsq where gsq.variable_name = 'Questions'");
+-- prepare s from @rq;
+-- execute s;
+
 
 SELECT IF(gsq.variable_value > 0, IF(gss.variable_value > 0,
 		concat('<tr><td bgcolor="WHITE" align=center width=',ROUND((gss.variable_value / (gss.variable_value+gsd.variable_value+gsi.variable_value+gsu.variable_value+gsp.variable_value))*100, 2),'%><b>READS</b></td><td bgcolor="WHITE" align=center width=',ROUND( 100 - ((gss.variable_value / (gss.variable_value+gsd.variable_value+gsi.variable_value+gsu.variable_value+gsp.variable_value))*100),2),'%><b>WRITES</b></td></tr>',
@@ -371,11 +390,12 @@ insert into histaudit SELECT DATE_FORMAT(NOW(),'%Y-%m-%d'), 'MSIZE', 'total serv
 
 -- *************************************** Valeurs actuelle des caches
 select '<table border=1 width=100% bgcolor="WHITE">';
-select '<tr><td bgcolor="#3399CC" align=center colspan=2><font color="WHITE"><b>Valeurs des caches et buffers</b></font></td></tr>';
+select '<tr><td bgcolor="#3399CC" align=center colspan=2><table border=0 width=100%><tr><td width=2% Title="Les nouveaux param&egrave;tres ou les param&egrave;tres modifi&eacute;s apparaissent en orange."><img src="data:image/gif;base64,',@info,'"></td><td align=center><font color="WHITE"><b>Valeurs des caches et buffers</b></font></td></tr></table></td></tr>';
+
 select '<tr><td bgcolor="WHITE" align=center width=40%><b>Cache</b></td><td bgcolor="WHITE" align=center><b>Valeur</b></td></tr>';
 -- variables in size
 SELECT concat('<tr><td bgcolor="',IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'),'" align=left>',variable_name,'</td><td bgcolor="',
- 'LIGHTBLUE','" align=right>', IF(variable_value > 1048576, ROUND(variable_value/1024/1024,2), ROUND(variable_value/1024,2)),IF(variable_value > 1048576,' Mo',' Ko'),'</td></tr>') 
+ IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'),'" align=right>', IF(variable_value > 1048576, ROUND(variable_value/1024/1024,2), ROUND(variable_value/1024,2)),IF(variable_value > 1048576,' Mo',' Ko'),'</td></tr>') 
    FROM INFORMATION_SCHEMA.global_variables
 ,(select histaudit.object_name, histaudit.valeur from histaudit where histaudit.object_type='PARAM' and histaudit.date_audit = @last_audit) hist
 
@@ -403,7 +423,7 @@ SELECT concat('<tr><td bgcolor="',IF (variable_value <> valeur, 'ORANGE', 'LIGHT
 and variable_name = hist.object_name
    UNION
 SELECT concat('<tr><td bgcolor="',IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'),'" align=left>',variable_name,'</td><td bgcolor="',
- IF (substring(@@version,1,3) > 5.7, 'RED" align=right> (deprecated since 5.7.20) ','LIGHTBLUE" align=right>'),
+ IF (substring(@@version,1,3) > 5.7 AND locate(lower(@@version),'mariadb') = 0 AND variable_value <> 'NO', 'RED" align=right> (deprecated since 5.7.20) ',IF (variable_value <> valeur, 'ORANGE" align=right>', 'LIGHTBLUE" align=right>')),
  variable_value,'</td></tr>') 
    FROM INFORMATION_SCHEMA.global_variables
 ,(select histaudit.object_name, histaudit.valeur from histaudit where histaudit.object_type='PARAM' and histaudit.date_audit = @last_audit) hist
@@ -412,7 +432,7 @@ and variable_name = hist.object_name
    UNION
 -- variables in number 
 SELECT concat('<tr><td bgcolor="',IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'),'" align=left>',variable_name,'</td><td bgcolor="',
- 'LIGHTBLUE',
+IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'),
 '" align=right>',variable_value,'</td></tr>') 
    FROM INFORMATION_SCHEMA.global_variables
 ,(select histaudit.object_name, histaudit.valeur from histaudit where histaudit.object_type='PARAM' and histaudit.date_audit = @last_audit) hist
@@ -423,6 +443,7 @@ SELECT concat('<tr><td bgcolor="',IF (variable_value <> valeur, 'ORANGE', 'LIGHT
 and variable_name = hist.object_name
    UNION
 -- variables to validate by other(s) variable(s) values(s)
+-- innodb_buffer_pool_instances (description : https://www.saotn.org/mysql-innodb-performance-improvement/ to add in 'Title' tips
  SELECT concat('<tr><td bgcolor="LIGHTBLUE" align=left>',gvi.variable_name,
                   '</td><td bgcolor="',
                   IF(cast(gvs.variable_value/(1024*1024*1024) as unsigned) > gvi.variable_value,
@@ -773,11 +794,18 @@ select IF(sq.variable_value <> 'ON',
 	AND gsprr.variable_name = 'Innodb_buffer_pool_read_requests'
 	AND gspr.variable_name = 'Innodb_buffer_pool_reads';
 select IF(sq.variable_value <> 'ON',
-			concat('<tr><td align=left bgcolor="LIGHTBLUE">Locks waits</td>', '<td align=right bgcolor="LIGHTBLUE" colspan=2>', 
+			concat('<tr><td align=left bgcolor="LIGHTBLUE">Current locks waits</td>', '<td align=right bgcolor="',IF(gsl.variable_value > 100, 'ORANGE','LIGHTBLUE'),'" colspan=2>', 
+				gsl.variable_value, '</td></tr>'), '')
+	FROM INFORMATION_SCHEMA.global_variables sq, INFORMATION_SCHEMA.global_status gsl
+	WHERE sq.variable_name = 'ignore_builtin_innodb'
+	AND gsl.variable_name = 'Innodb_row_lock_current_waits';
+select IF(sq.variable_value <> 'ON',
+			concat('<tr><td align=left bgcolor="LIGHTBLUE">Sum locks waits</td>', '<td align=right bgcolor="',IF(gsl.variable_value > 100, 'ORANGE','LIGHTBLUE'),'" colspan=2>', 
 				gsl.variable_value, '</td></tr>'), '')
 	FROM INFORMATION_SCHEMA.global_variables sq, INFORMATION_SCHEMA.global_status gsl
 	WHERE sq.variable_name = 'ignore_builtin_innodb'
 	AND gsl.variable_name = 'Innodb_row_lock_waits';
+-- Display a grey empty table if there is no data
 select IF(count(*) = 0,'<tr><td bgcolor="LIGHTGREY" align=center width=40%>&nbsp;</td><td bgcolor="LIGHTGREY" align=center>&nbsp;</td><td bgcolor="LIGHTGREY" align=center></td>&nbsp;</tr>','')
   from INFORMATION_SCHEMA.global_variables sq, information_schema.TABLES it
   where sq.variable_name = 'ignore_builtin_innodb'

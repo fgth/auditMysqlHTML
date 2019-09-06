@@ -6,7 +6,12 @@
 --      Comme pour Postgresql, faut-il faire un audit par base en rappelant les stats global serveur pour chacune ?
 -- ******************
 
--- TODO : repérer changements de paramètres init entre 2 audits
+-- TODO : étudier https://github.com/MarkLeith/dbahelper, https://github.com/mysql/mysql-sys
+-- TODO : voir max calculated memory size (avec max_connections) : https://gist.github.com/SIN-777/2872785
+          voir si identique : key_buffer_size + query_cache_size + innodb_buffer_pool_size + innodb_additional_mem_pool_size + innodb_log_buffer_size + Max_used_connections * (read_buffer_size + read_rnd_buffer_size + sort_buffer_size+ join_buffer_size+ binlog_cache_size + thread_stack + tmp_table_size)
+          global buffers and sessions buffers : http://ronaldbradford.com/blog/dont-assume-per-session-buffers-2010-03-08/
+
+-- TODO : ajouter info "performance_schema ON or OFF"
 -- TODO : ajouter une information indiquant INNODB actif mais non utilisé
 --        (message "[!!] InnoDB is enabled but isn't being used" de MYSQLTUNER)
 --    --> voir "Répartition par type de stockage" : si le tableau ne contient pas "InnoDB", et que le InnoDB est activé, le mettre en orange dans section InnoDB
