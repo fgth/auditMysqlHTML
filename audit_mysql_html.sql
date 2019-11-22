@@ -42,8 +42,7 @@ select '<table border=0 width=90% bgcolor="#003366" align=center><tr><td>';
 
 select '<table border=1 width=100% bgcolor="WHITE">';
 select '<tr><td bgcolor="#3399CC" align=center>';
-select concat('<font color=WHITE size=+2><b>Audit MYSQL (',@@hostname,')');
-select concat(' le ',date_format(sysdate(),'%d/%m/%Y'),'</b>');
+select concat('<font color=WHITE size=+2><b>Audit MYSQL (',@@hostname,':',variable_value,') le ',date_format(sysdate(),'%d/%m/%Y'),'</b>') from INFORMATION_SCHEMA.global_variables where variable_name = 'port';
 select IF((select count(*) from histaudit where date_audit < DATE_FORMAT(NOW(),'%Y-%m-%d') > 0), concat('</font></td></tr><tr><td bgcolor="LIGHTBLUE" align=center><b>Pr&eacute;c&eacute;dent audit : ',date_format(max(distinct date_audit),'%d/%m/%Y')), '</font></td></tr><tr><td bgcolor="ORANGE" align=center><b>Premier audit') from histaudit where date_audit < DATE_FORMAT(NOW(),'%Y-%m-%d');
 select '</b></td></tr></table>';
 select '<br>';
@@ -172,7 +171,7 @@ select '<tr><td bgcolor="#3399CC" align=center colspan=2><font color="WHITE"><b>
 
 SELECT IF(gsq.variable_value > 0, IF(gss.variable_value > 0,
 		concat('<tr><td bgcolor="WHITE" align=center width=',ROUND((gss.variable_value / (gss.variable_value+gsd.variable_value+gsi.variable_value+gsu.variable_value+gsp.variable_value))*100, 2),'%><b>READS</b></td><td bgcolor="WHITE" align=center width=',ROUND( 100 - ((gss.variable_value / (gss.variable_value+gsd.variable_value+gsi.variable_value+gsu.variable_value+gsp.variable_value))*100),2),'%><b>WRITES</b></td></tr>',
-		'<tr><td bgcolor="#01DF3A" align=center>', ROUND((gss.variable_value / (gss.variable_value+gsd.variable_value+gsi.variable_value+gsu.variable_value+gsp.variable_value))*100, 2), '%</td><td bgcolor="#04B404" align=center>', ROUND( 100 - ((gss.variable_value / (gss.variable_value+gsd.variable_value+gsi.variable_value+gsu.variable_value+gsp.variable_value))*100),2),'%</td></tr>'),
+		'<tr><td bgcolor="#FFFFOO" align=center><b>', ROUND((gss.variable_value / (gss.variable_value+gsd.variable_value+gsi.variable_value+gsu.variable_value+gsp.variable_value))*100, 2), '%</b></td><td bgcolor="#FFBF00" align=center><b>', ROUND( 100 - ((gss.variable_value / (gss.variable_value+gsd.variable_value+gsi.variable_value+gsu.variable_value+gsp.variable_value))*100),2),'%</b></td></tr>'),
 		'<tr><td bgcolor="WHITE" align=center width=20%><b>READS</b></td><td bgcolor="WHITE" align=center width=80%><b>WRITES</b></td></tr><tr><td td bgcolor="LIGHTBLUE" align=center>0%</td><td bgcolor="LIGHTBLUE" align=center>100%</td></tr>'),
 		'<tr><td bgcolor="LIGHTGREY" align=left>&nbsp; </td></tr>')
 	FROM INFORMATION_SCHEMA.global_status gsq, INFORMATION_SCHEMA.global_status gss, INFORMATION_SCHEMA.global_status gsd,
@@ -276,27 +275,27 @@ SELECT concat('<tr><td bgcolor="WHITE" align=left><b>Total sur disque</b></td>',
 FROM information_schema.tables;
 */
 -- Total global
-SELECT concat('<tr><td bgcolor="WHITE" align=left><b>Total sur disque</b></td>', '<td bgcolor="LIGHTBLUE" align=right colspan=5><b>',
+SELECT concat('<tr><td bgcolor="WHITE" align=left><b>TOTAL sur disque</b></td>', '<td bgcolor="BLUE" align=right colspan=5><font color="WHITE"><b>',
   IF (total > 1048576,
       IF (total > 1073741824,
-          concat(ROUND(total/1024/1024/1024,2),' Go</b></td>'),
-          concat(ROUND(total/1024/1024,2),' Mo</b></td>')),
-      concat(ROUND(total/1024,2),' Ko</b></td>')),
-'<td bgcolor="LIGHTBLUE" align=right>',
+          concat(ROUND(total/1024/1024/1024,2),' Go'),
+          concat(ROUND(total/1024/1024,2),' Mo')),
+      concat(ROUND(total/1024,2),' Ko')),
+'</b></font></td><td bgcolor="BLUE" align=right><font color="WHITE"><b>',
   IF (total-valeur = 0,
       '0.00',
       IF (total-valeur > 0,
           IF (total-valeur > 1048576,
               IF (total-valeur > 1073741824,
-                  concat('+',ROUND((total-valeur)/1024/1024/1024,2),' Go</td>'),
-                  concat('+',ROUND((total-valeur)/1024/1024,2),' Mo</td>')),
-              concat('+',ROUND((total-valeur)/1024,2),' Ko</td>')),
+                  concat('+',ROUND((total-valeur)/1024/1024/1024,2),' Go'),
+                  concat('+',ROUND((total-valeur)/1024/1024,2),' Mo')),
+              concat('+',ROUND((total-valeur)/1024,2),' Ko')),
           IF (total-valeur < -1048576,
               IF (total-valeur < -1073741824,
-                  concat(ROUND((total-valeur)/1024/1024/1024,2),' Go</td>'),
-                  concat(ROUND((total-valeur)/1024/1024,2),' Mo</td>')),
-              concat(ROUND((total-valeur)/1024,2),' Ko</td>')))),
-'</tr>'
+                  concat(ROUND((total-valeur)/1024/1024/1024,2),' Go'),
+                  concat(ROUND((total-valeur)/1024/1024,2),' Mo')),
+              concat(ROUND((total-valeur)/1024,2),' Ko')))),
+'</b></font></td></tr>'
 )
 FROM
 (select sum(data_length)+sum(index_length) total from information_schema.tables) information_schema_t,
@@ -351,46 +350,11 @@ select '<hr>';
 select '<div align=center><b><font color="WHITE">SECTION MEMOIRE ET CACHES</font></b></div>';
 
 select '<hr>';
--- *************************************** Mémoire utilisée
-select '<table border=1 width=100% bgcolor="WHITE">';
-select '<tr><td bgcolor="#3399CC" align=center colspan=2><font color="WHITE"><b>M&eacute;moire totale utilis&eacute;e</b></font></td></tr>';
-select '<tr><td bgcolor="WHITE" align=center width=40%><b>Type</b></td><td bgcolor="WHITE" align=center><b>Valeur</b></td></tr>';
-SELECT concat('<tr><td bgcolor="LIGHTBLUE" align=left>Buffers</td><td bgcolor="',
- IF (round((kbs.variable_value + IF(tts.variable_value > mhts.variable_value, mhts.variable_value, tts.variable_value) + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2) > round(hist.valeur/1024/1024,2), 'ORANGE', 'LIGHTBLUE'),
-'" align=right>',round((kbs.variable_value + IF(tts.variable_value > mhts.variable_value, mhts.variable_value, tts.variable_value) + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2),' Mo ',
- IF (round((kbs.variable_value + IF(tts.variable_value > mhts.variable_value, mhts.variable_value, tts.variable_value) + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024, 2) > round(hist.valeur/1024/1024,2),
-     concat('(+',
-           round((kbs.variable_value + IF(tts.variable_value > mhts.variable_value, mhts.variable_value, tts.variable_value) + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2) - round(hist.valeur/1024/1024,2),
-           ')'),
-     ''),
-'</td></tr>')
-  FROM (select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'key_buffer_size') kbs,
-        (select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'max_heap_table_size') mhts,
-        (select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'tmp_table_size') tts,
-        (select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'query_cache_size') qcs,
-        (select IF(EXISTS(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_buffer_pool_size')=1,(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_buffer_pool_size'), 0) variable_value) ibps, -- les variables innodb n'existent pas si innodb desactivé
-        (select IF(EXISTS(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_additional_mem_pool_size')=1,(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_additional_mem_pool_size'), 0) variable_value) iamps,
-        (select IF(EXISTS(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_log_buffer_size')=1,(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_log_buffer_size'), 0) variable_value) ilbs,
 
-(select histaudit.valeur from histaudit where histaudit.object_type='MSIZE' and histaudit.date_audit < DATE_FORMAT(NOW(),'%Y-%m-%d') order by histaudit.date_audit DESC LIMIT 1) hist;
--- (select IF(EXISTS(select histaudit.valeur from histaudit where histaudit.object_type='MSIZE' and histaudit.date_audit < DATE_FORMAT(NOW(),'%Y-%m-%d') order by histaudit.date_audit DESC LIMIT 1)=0,0,(select histaudit.valeur from histaudit where histaudit.object_type='MSIZE' and histaudit.date_audit < DATE_FORMAT(NOW(),'%Y-%m-%d') order by histaudit.date_audit DESC LIMIT 1)) valeur) hist;
-select '</table>';
-select '<br>';
--- ***************** Historique *****************
-delete from histaudit where date_audit = DATE_FORMAT(NOW(),'%Y-%m-%d') and object_type='MSIZE';
-insert into histaudit SELECT DATE_FORMAT(NOW(),'%Y-%m-%d'), 'MSIZE', 'total server memory', (kbs.variable_value + IF(tts.variable_value > mhts.variable_value, mhts.variable_value, tts.variable_value) + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(iampi.variable_value IS NOT NULL, iampi.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))
-  FROM (select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'key_buffer_size') kbs,
-        (select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'max_heap_table_size') mhts,
-        (select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'tmp_table_size') tts,
-        (select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'query_cache_size') qcs,
-        (select IF(EXISTS(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_buffer_pool_size')=1,(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_buffer_pool_size'), 0) variable_value) ibps, -- les variables innodb n'existent pas si innodb desactivé
-        (select IF(EXISTS(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_additional_mem_pool_size')=1,(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_additional_mem_pool_size'), 0) variable_value) iamps,
-        (select IF(EXISTS(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_buffer_pool_instances')=1,(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_buffer_pool_instances'), 0) variable_value) iampi,
-        (select IF(EXISTS(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_log_buffer_size')=1,(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_log_buffer_size'), 0) variable_value) ilbs;
 
 -- *************************************** Valeurs actuelle des caches
 select '<table border=1 width=100% bgcolor="WHITE">';
-select '<tr><td bgcolor="#3399CC" align=center colspan=2><table border=0 width=100%><tr><td width=2% Title="Les nouveaux param&egrave;tres ou les param&egrave;tres modifi&eacute;s apparaissent en orange."><img src="data:image/gif;base64,',@info,'"></td><td align=center><font color="WHITE"><b>Valeurs des caches et buffers</b></font></td></tr></table></td></tr>';
+select '<tr><td bgcolor="#3399CC" align=center colspan=2><table border=0 width=100%><tr><td width=2% Title="Les nouveaux param&egrave;tres ou les param&egrave;tres modifi&eacute;s apparaissent en orange."><img src="data:image/gif;base64,',@info,'"></td><td align=center><font color="WHITE"><b>Valeurs des caches et buffers principaux</b></font></td></tr></table></td></tr>';
 
 select '<tr><td bgcolor="WHITE" align=center width=40%><b>Cache</b></td><td bgcolor="WHITE" align=center><b>Valeur</b></td></tr>';
 -- variables in size
@@ -459,9 +423,51 @@ and variable_name = hist.object_name
         (select variable_name,variable_value from INFORMATION_SCHEMA.global_variables
       where variable_name ='innodb_buffer_pool_instances') gvi
 order by 1;
-   
+
+-- *************************************** Mémoire totale utilisée
+
+select '<tr><td bgcolor="#3399CC" align=center colspan=2><font color="WHITE"><b>M&eacute;moire totale utilis&eacute;e</b></font></td></tr>';
+SELECT concat('<tr><td bgcolor="WHITE" align=left><b>Buffers</b></td><td bgcolor="',
+ IF (round((kbs.variable_value + IF(tts.variable_value > mhts.variable_value, mhts.variable_value, tts.variable_value) + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2) > round(hist.valeur/1024/1024,2), 'ORANGE', 'BLUE'),
+'" align=right><font color="WHITE"><b>',round((kbs.variable_value + IF(tts.variable_value > mhts.variable_value, mhts.variable_value, tts.variable_value) + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2),' Mo ',
+ IF (round((kbs.variable_value + IF(tts.variable_value > mhts.variable_value, mhts.variable_value, tts.variable_value) + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024, 2) > round(hist.valeur/1024/1024,2),
+     concat('(+',
+           round((kbs.variable_value + IF(tts.variable_value > mhts.variable_value, mhts.variable_value, tts.variable_value) + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2) - round(hist.valeur/1024/1024,2),
+           ')'),
+     ''),
+'</b></font></td></tr>')
+  FROM (select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'key_buffer_size') kbs,
+        (select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'max_heap_table_size') mhts,
+        (select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'tmp_table_size') tts,
+        (select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'query_cache_size') qcs,
+        (select IF(EXISTS(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_buffer_pool_size')=1,(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_buffer_pool_size'), 0) variable_value) ibps, -- les variables innodb n'existent pas si innodb desactivé
+        (select IF(EXISTS(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_additional_mem_pool_size')=1,(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_additional_mem_pool_size'), 0) variable_value) iamps,
+        (select IF(EXISTS(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_log_buffer_size')=1,(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_log_buffer_size'), 0) variable_value) ilbs,
+
+(select histaudit.valeur from histaudit where histaudit.object_type='MSIZE' and histaudit.date_audit < DATE_FORMAT(NOW(),'%Y-%m-%d') order by histaudit.date_audit DESC LIMIT 1) hist;
+-- (select IF(EXISTS(select histaudit.valeur from histaudit where histaudit.object_type='MSIZE' and histaudit.date_audit < DATE_FORMAT(NOW(),'%Y-%m-%d') order by histaudit.date_audit DESC LIMIT 1)=0,0,(select histaudit.valeur from histaudit where histaudit.object_type='MSIZE' and histaudit.date_audit < DATE_FORMAT(NOW(),'%Y-%m-%d') order by histaudit.date_audit DESC LIMIT 1)) valeur) hist;
+-- select '</table>';
+-- select '<br>';
+
+
+
+
+
 select '</table>';
 select '<br>';
+
+
+-- ***************** Historique *****************
+delete from histaudit where date_audit = DATE_FORMAT(NOW(),'%Y-%m-%d') and object_type='MSIZE';
+insert into histaudit SELECT DATE_FORMAT(NOW(),'%Y-%m-%d'), 'MSIZE', 'total server memory', (kbs.variable_value + IF(tts.variable_value > mhts.variable_value, mhts.variable_value, tts.variable_value) + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(iampi.variable_value IS NOT NULL, iampi.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))
+  FROM (select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'key_buffer_size') kbs,
+        (select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'max_heap_table_size') mhts,
+        (select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'tmp_table_size') tts,
+        (select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'query_cache_size') qcs,
+        (select IF(EXISTS(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_buffer_pool_size')=1,(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_buffer_pool_size'), 0) variable_value) ibps, -- les variables innodb n'existent pas si innodb desactivé
+        (select IF(EXISTS(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_additional_mem_pool_size')=1,(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_additional_mem_pool_size'), 0) variable_value) iamps,
+        (select IF(EXISTS(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_buffer_pool_instances')=1,(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_buffer_pool_instances'), 0) variable_value) iampi,
+        (select IF(EXISTS(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_log_buffer_size')=1,(select variable_value from INFORMATION_SCHEMA.global_variables where variable_name = 'innodb_log_buffer_size'), 0) variable_value) ilbs;
 
 -- ***************** Historique *****************
 delete from histaudit where date_audit = DATE_FORMAT(NOW(),'%Y-%m-%d') and object_type='PARAM';
@@ -671,7 +677,7 @@ select '<br>';
 
 -- *************************************** Jointures sans indexes
 select '<table border=1 width=100% bgcolor="WHITE">';
-select '<tr><td bgcolor="#3399CC" align=center colspan=2><font color="WHITE"><b>Jointures sans indexes</b></font></td></tr>';
+select '<tr><td bgcolor="#3399CC" align=center colspan=2>  <table border=0 width=100%><tr><td width=2% Title="Si ce nombre est tr&egrave;s &eacute;lev&eacute;, activer le log des requ&ecirc;tes sans indexes : log_queries_not_using_indexes=1. Attention : les requ&ecirc;tes full scan (m&ecirc;me avec indexes) sont logu&eacute;es aussi."><img src="data:image/gif;base64,',@tips,'"></td><td align=center> <font color="WHITE"><b>Jointures sans indexes</b></font>  </td></tr></table> </td></tr>';
 select '<tr><td bgcolor="WHITE" align=center width=40%><b>Statistique</b></td><td bgcolor="WHITE" align=center><b>Valeur</b></td></tr>';
 select '<tr><td bgcolor="LIGHTBLUE" align=left>','Nombre de jointures sans indexes', '</td>', concat('<td bgcolor=', IF((sum(gs.variable_value)/(squ.variable_value/86400)) > 100, '"ORANGE"','"LIGHTBLUE"'), ' align=right>'), sum(gs.variable_value), ' (', IF (squ.variable_value >= 86400, round(sum(gs.variable_value)/(squ.variable_value/86400)), sum(gs.variable_value)), ' / jour)</td><tr>'
   FROM INFORMATION_SCHEMA.global_status gs, INFORMATION_SCHEMA.global_status squ
