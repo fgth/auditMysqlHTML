@@ -351,7 +351,6 @@ select '<div align=center><b><font color="WHITE">SECTION MEMOIRE ET CACHES</font
 
 select '<hr>';
 
-
 -- *************************************** Valeurs actuelle des caches
 select '<table border=1 width=100% bgcolor="WHITE">';
 select '<tr><td bgcolor="#3399CC" align=center colspan=2><table border=0 width=100%><tr><td width=2% Title="Les nouveaux param&egrave;tres ou les param&egrave;tres modifi&eacute;s apparaissent en orange."><img src="data:image/gif;base64,',@info,'"></td><td align=center><font color="WHITE"><b>Valeurs des caches et buffers principaux</b></font></td></tr></table></td></tr>';
@@ -446,16 +445,9 @@ SELECT concat('<tr><td bgcolor="WHITE" align=left><b>Buffers</b></td><td bgcolor
 
 (select histaudit.valeur from histaudit where histaudit.object_type='MSIZE' and histaudit.date_audit < DATE_FORMAT(NOW(),'%Y-%m-%d') order by histaudit.date_audit DESC LIMIT 1) hist;
 -- (select IF(EXISTS(select histaudit.valeur from histaudit where histaudit.object_type='MSIZE' and histaudit.date_audit < DATE_FORMAT(NOW(),'%Y-%m-%d') order by histaudit.date_audit DESC LIMIT 1)=0,0,(select histaudit.valeur from histaudit where histaudit.object_type='MSIZE' and histaudit.date_audit < DATE_FORMAT(NOW(),'%Y-%m-%d') order by histaudit.date_audit DESC LIMIT 1)) valeur) hist;
--- select '</table>';
--- select '<br>';
-
-
-
-
 
 select '</table>';
 select '<br>';
-
 
 -- ***************** Historique *****************
 delete from histaudit where date_audit = DATE_FORMAT(NOW(),'%Y-%m-%d') and object_type='MSIZE';
