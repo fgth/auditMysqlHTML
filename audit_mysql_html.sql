@@ -803,12 +803,12 @@ select IF(sq.variable_value <> 'ON',
 	FROM INFORMATION_SCHEMA.global_variables sq, INFORMATION_SCHEMA.global_status gsl
 	WHERE sq.variable_name = 'ignore_builtin_innodb'
 	AND gsl.variable_name = 'Innodb_row_lock_waits';
--- Display a grey empty table if there is no data
-select IF(count(*) = 0,'<tr><td bgcolor="LIGHTGREY" align=center width=40%>&nbsp;</td><td bgcolor="LIGHTGREY" align=center>&nbsp;</td><td bgcolor="LIGHTGREY" align=center></td>&nbsp;</tr>','')
-  from INFORMATION_SCHEMA.global_variables sq, information_schema.TABLES it
-  where sq.variable_name = 'ignore_builtin_innodb'
-  and TABLE_SCHEMA NOT IN ('information_schema', 'performance_schema', 'mysql')
-  AND ENGINE = 'InnoDB';
+-- To check : display buffers values even if ignore_builtin_innodb not present ?
+-- select IF(count(*) = 0,'<tr><td bgcolor="LIGHTGREY" align=center width=40%>&nbsp;</td><td bgcolor="LIGHTGREY" align=center>&nbsp;</td><td bgcolor="LIGHTGREY" align=center></td>&nbsp;</tr>','')
+--  from INFORMATION_SCHEMA.global_variables sq, information_schema.TABLES it
+--  where sq.variable_name = 'ignore_builtin_innodb'
+--  and TABLE_SCHEMA NOT IN ('information_schema', 'performance_schema', 'mysql')
+--  AND ENGINE = 'InnoDB';
 
 select '</table>'; -- </td></tr>
 select '<br>';

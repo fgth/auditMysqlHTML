@@ -3,17 +3,17 @@ Script to generate a MySQL/MariaDB audit report of performances in HTML
 ----------------------------------
 Freely inspired from internet shares (finally Google can be your friend, reasonably used) and especially this scripts :
 * mysqltuner.pl - Version 1.6.2.001
-* http://mysqltuner.com
-* Copyright (C) 2006-2015 Major Hayden - major@mhtx.net
+ http://mysqltuner.com
+ Copyright (C) 2006-2015 Major Hayden - major@mhtx.net
 
 * mysqlreport v3.5 Apr 16 2008
-* http://hackmysql.com/mysqlreport
-* Copyright 2006-2008 Daniel Nichter
+ http://hackmysql.com/mysqlreport
+ Copyright 2006-2008 Daniel Nichter
 
 * tuning-primer.sh - Version: 1.6-r1 Released: 2011-08-06
-* Writen by: Matthew Montgomery
-* https://bugs.launchpad.net/mysql-tuning-primer
-* Inspired by: MySQLARd (http://gert.sos.be/demo/mysqlar)
+ Writen by: Matthew Montgomery
+ https://bugs.launchpad.net/mysql-tuning-primer
+ Inspired by: MySQLARd (http://gert.sos.be/demo/mysqlar)
 
 I would like to thank their authors for that.
 
