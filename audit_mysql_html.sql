@@ -1,7 +1,4 @@
 -- AUDIT BASES MYSQL
--- v2.0
-SET @script_version := 'v2.0';
--- Compatible with MySQL 5.0.6 minimum (INFORMATION_SCHEMA.global_status) and higher (>= 5.7.6 and 8 : global_variables and global_status tables moved in PERFORMANCE_SCHEMA), MariaDB 10
 -- (c) 2013, Frank Soyer <frank.soyer@gmail.com>
 
 -- This program is free software; you can redistribute it and/or
@@ -17,6 +14,11 @@ SET @script_version := 'v2.0';
 -- The GNU General Public License is available at:
 -- http://www.gnu.org/copyleft/gpl.html
 
+SET @script_version := 'v2.0';
+-- Compatible with MySQL 5.0.6 minimum (INFORMATION_SCHEMA.global_status) and higher (>= 5.7.6 and 8 : global_variables and global_status tables moved to PERFORMANCE_SCHEMA)
+
+-- !!! v2.0 to be validated on MariaDB !!!
+
 -- ================================================= SCRIPT D'AUDIT =========================================
 
 SET @tips := 'iVBORw0KGgoAAAANSUhEUgAAABMAAAATCAYAAAByUDbMAAAABmJLR0QAAAAAAAD5Q7t/AAAACXBIWXMAAAsQAAALEAGtI711AAAACXZwQWcAAAATAAAAEwDxf4yuAAACDElEQVQ4y62ULXDbQBBGnzsFK2YxHzyoMJk50NBhCWugYcpCA0PDEmjosphF0DBmEqvgwSs7MS1TgSz5v9OZdmd2NKNZvfv20+4Nmqbhf8XXcy9L5xpfFpTlGlfmaPiFxCNsMiZJppgkJbF2cPzd4FjZZrNpPpZPRHySJoIxYIzgveIc5KWCXHNz/8xkMhlchGWrH81qMWd+L6SpgOxVKug281xZZcrtw4LZ7FsP7Ntcr7MmW855fhoyHIFE0WEPEVDXiMJ4LJgY3t7mxLFtOoVfOo9Wi+88zOUENDCuT4kiEBABM4LZVHhfPFI61/QwV6yxxmOtnIB8qPvsgCIgkXCdQFwXuGJDDyvyjOvxoUcdaD86IEJfm15BkX/sYL4ssFa4FCY+8k+3T4F4CN7tKQsakMusy6Gtf1qFHSyWGA26OxFovD1RZOKIxtsDdaogw3gHM0nKT7edo7o+C+xAWtfbOiUoeA/GTnawdDyjKLbKjoAHXdV1P7woEJTSQTq+2cFsOsV5Q+mUqgKtQEN9AtUKqqqFhKoFhSjFpnvKEmsHtw+vLJeKd4oGbYEVhHwEQPgctb5uQZWHrIC7+Uu/9Gd3czZtB7L7/Z3ZYa+1bAO3j4e7efbWeF88EtcF6VW7NhJBFVqzu9bu5i9/vjW6KJ1rXLGhyD/w5YaggVhiTDIhHd9g08nf3Wf/Er8BAI4wKLDf6EwAAAAfelRYdENyZWF0aW9uIFRpbWUAAHjaMzDTNzLUNzABAAb7AYwMyT+gAAAALnpUWHRTb2Z0d2FyZQAAeNrzTUwuys9NTclMVHDLLEotzy/KLlbwjVAwMjAwAQCWLgl6ZrFa0gAAAABJRU5ErkJggg==';
@@ -30,13 +32,6 @@ create table if not exists histaudit
       object_type varchar(5),
       object_name varchar(100),
       valeur varchar(255));
-
--- Compatibility tip for v5 AND v8
--- SET @tblname = IF (SUBSTRING( @@VERSION , 1 , LOCATE( '.' , @@VERSION )-1 ) < 8, 'INFORMATION_SCHEMA', 'PERFORMANCE_SCHEMA');
--- SET @sql = CONCAT('select * from ', @tblname,' where variable_name = \'port\'');
--- PREPARE stmt FROM @sql;
--- EXECUTE stmt;
--- DEALLOCATE PREPARE stmt;
 
 -- *************************************** Entête ************************************
 select '<!DOCTYPE public "-//w3c//dtd html 4.01 strict//en" "http://www.w3.org/TR/html4/strict.dtd">';
@@ -52,7 +47,6 @@ select '<table border=0 width=90% bgcolor="#003366" align=center><tr><td>';
 select '<table border=1 width=100% bgcolor="WHITE">';
 select '<tr><td bgcolor="#3399CC" align=center>';
 -- select concat('<font color=WHITE size=+2><b>Audit MYSQL (',@@hostname,':',variable_value,') le ',date_format(sysdate(),'%d/%m/%Y'),'</b>') from INFORMATION_SCHEMA.global_variables where variable_name = 'port';
-
 SET @sql = CONCAT('select concat(\'<font color=WHITE size=+2><b>Audit MYSQL (\', @@hostname , \':\', variable_value, \') le \', date_format(sysdate() ,\'%d/%m/%Y\'),\'</b></font><font color=WHITE size=+1> -- script ', @script_version, '</font>\') from ', @tblname, '.global_variables where variable_name = \'port\'');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
@@ -215,20 +209,6 @@ insert into histaudit SELECT DATE_FORMAT(NOW(),'%Y-%m-%d'), 'VERS', 'OSversion',
 -- ************************************** Ratio read/write
 select '<br/><table border=1 width=100% bgcolor="WHITE">';
 select '<tr><td bgcolor="#3399CC" align=center colspan=2><font color="WHITE"><b>Ratio reads / writes</b></font></td></tr>';
-
-
--- A TESTER : REQUETE CONDITIONNELLE VERSION 5 OU 8
--- SELON VARIABLE @majorver, interroger INFORMATION_SCHEMA (5) ou PERFORMANCE_SCHEMA (8) PAR PREPARE SQL
--- INSTRUCTIONS :
--- set @rq:=(select "select ? + 1 as n");
--- prepare s from @rq;
--- set @a:=1;
--- execute s using @a;
--- 
--- DONC, TESTER AVEC UN SELECT POUR @rq :
--- select @rq := IF(@majorver > 5, "select variable_value from PERFORMANCE_SCHEMA.global_status gsq where gsq.variable_name = 'Questions'", "select variable_value from INFORMATION_SCHEMA.global_status gsq where gsq.variable_name = 'Questions'");
--- prepare s from @rq;
--- execute s;
 
 -- SELECT IF(gsq.variable_value > 0, IF(gss.variable_value > 0,
 -- 		concat('<tr><td bgcolor="WHITE" align=center width=',ROUND((gss.variable_value / (gss.variable_value+gsd.variable_value+gsi.variable_value+gsu.variable_value+gsp.variable_value))*100, 2),'%><b>READS</b></td><td bgcolor="WHITE" align=center width=',ROUND( 100 - ((gss.variable_value / (gss.variable_value+gsd.variable_value+gsi.variable_value+gsu.variable_value+gsp.variable_value))*100),2),'%><b>WRITES</b></td></tr>',
