@@ -72,8 +72,10 @@ Changelog
 * 01/2016 v1.1 : ajout stats de base InnoDB (nécessite accès root ou "ALL PRIVILEGES")
 * 09/2016 v1.2 : création table histaudit et insertion param, tailles données, taille mémoire.
 * 02/2017 v1.3 : ajout stat nombre de jointures sans indexes
-* ajout stats table locks
+*                ajout stats table locks
 * 01/2017      : affichage version en ORANGE si version modifiée depuis dernier audit
 * 2017         : ajout différence taille mémoire utilisée
 * 04/2018 v1.4 : ajout des différences de tailles de données depuis dernier audit
-
+* 10/2019 v2.0 : script now compatible with MySQL < 5.7.6 (and MariaDB) and > 8
+* 01/2020 v2.1 : some adjustements to validate script v2 with MariaDB
+ *               and add ORANGE alert if INNODB_BUFFER_POOL_INSTANCES has changed
