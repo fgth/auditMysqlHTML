@@ -505,7 +505,7 @@ DEALLOCATE PREPARE stmt;
 -- *************************************** Mémoire totale utilisée
 
 SET @sql = CONCAT("
-SELECT concat('<tr><td bgcolor=\"WHITE\" align=left><b>M&eacute;moire totale utilis&eacute;e par les buffers</b></td><td bgcolor=\"',
+SELECT concat('<tr><td bgcolor=\"WHITE\" align=left><b>M&eacute;moire globale utilis&eacute;e par les buffers</b></td><td bgcolor=\"',
  IF (round((kbs.variable_value + IF(tts.variable_value > mhts.variable_value, mhts.variable_value, tts.variable_value) + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2) > round(hist.valeur/1024/1024,2), 'ORANGE', 'BLUE'),
 '\" align=right><font color=\"WHITE\"><b>',round((kbs.variable_value + IF(tts.variable_value > mhts.variable_value, mhts.variable_value, tts.variable_value) + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2),' Mo ',
  IF (round((kbs.variable_value + IF(tts.variable_value > mhts.variable_value, mhts.variable_value, tts.variable_value) + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024, 2) > round(hist.valeur/1024/1024,2),
@@ -526,6 +526,9 @@ SELECT concat('<tr><td bgcolor=\"WHITE\" align=left><b>M&eacute;moire totale uti
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
+
+-- AJOUTER TABLEAU MEMOIRE PAR SESSION
+-- + TOTAL MULTIPLIE PAR MAX_CONNECTIONS_USED
 
 select '</table>';
 select '<br>';
@@ -1148,7 +1151,7 @@ SET @sql = IF (substring(@@version,1,3) <= 5.1 AND locate(lower(@@version),'mari
     CONCAT('<tr><td bgcolor=\"LIGHTBLUE\" align=left>',
            'GRANT ',UPPER(gcl.Column_priv),' (',GROUP_CONCAT(gcl.Column_name),') ',
                  'ON `',gcl.Db,'`.`',gcl.Table_name,'` ',
-                 'TO \'',gcl.User,'\'@\'',gcl.Host,'\';',
+                 'TO \\'',gcl.User,'\\'@\\'',gcl.Host,'\\';',
                  '</td></tr>')
 FROM mysql.columns_priv gcl
 GROUP BY CONCAT(gcl.Db,gcl.Table_name,gcl.User,gcl.Host)
@@ -1161,7 +1164,7 @@ SELECT
     CONCAT('<tr><td bgcolor=\"LIGHTBLUE\" align=left>',
         'GRANT ',UPPER(gtb.Table_priv),' ',
         'ON `',gtb.Db,'`.`',gtb.Table_name,'` ',
-        'TO \'',gtb.User,'\'@\'',gtb.Host,'\';',
+        'TO \\'',gtb.User,'\\'@\\'',gtb.Host,'\\';',
         '</td></tr>')
 FROM mysql.tables_priv gtb
 WHERE gtb.Table_priv!=''
@@ -1194,7 +1197,7 @@ SELECT
             IF(gdb.Event_priv='Y','EVENT',NULL),
             IF(gdb.Trigger_priv='Y','TRIGGER',NULL)
         ),
-        ' ON `',gdb.Db,'`.* TO \'',gdb.User,'\'@\'',gdb.Host,'\';'
+        ' ON `',gdb.Db,'`.* TO \\'',gdb.User,'\\'@\\'',gdb.Host,'\\';'
         '</td></tr>')
 FROM mysql.db gdb
 WHERE gdb.Db != ''
@@ -1241,7 +1244,7 @@ SELECT
                 )
             )
         ),
-        ' ON *.* TO \'',gus.User,'\'@\'',gus.Host,'\' REQUIRE ',
+        ' ON *.* TO \\'',gus.User,'\\'@\\'',gus.Host,'\\' REQUIRE ',
         CASE gus.ssl_type
             WHEN 'ANY' THEN
                 'SSL '
@@ -1270,7 +1273,7 @@ WHERE gus.Password != ''",
     CONCAT('<tr><td bgcolor=\"LIGHTBLUE\" align=left>',
            'GRANT ',UPPER(gcl.Column_priv),' (',GROUP_CONCAT(gcl.Column_name),') ',
                  'ON `',gcl.Db,'`.`',gcl.Table_name,'` ',
-                 'TO \'',gcl.User,'\'@\'',gcl.Host,'\';',
+                 'TO \\'',gcl.User,'\\'@\\'',gcl.Host,'\\';',
                  '</td></tr>')
 FROM mysql.columns_priv gcl
 GROUP BY CONCAT(gcl.Db,gcl.Table_name,gcl.User,gcl.Host)
@@ -1283,7 +1286,7 @@ SELECT
     CONCAT('<tr><td bgcolor=\"LIGHTBLUE\" align=left>',
         'GRANT ',UPPER(gtb.Table_priv),' ',
         'ON `',gtb.Db,'`.`',gtb.Table_name,'` ',
-        'TO \'',gtb.User,'\'@\'',gtb.Host,'\';',
+        'TO \\'',gtb.User,'\\'@\\'',gtb.Host,'\\';',
         '</td></tr>')
 FROM mysql.tables_priv gtb
 WHERE gtb.Table_priv!=''
@@ -1316,7 +1319,7 @@ SELECT
             IF(gdb.Event_priv='Y','EVENT',NULL),
             IF(gdb.Trigger_priv='Y','TRIGGER',NULL)
         ),
-        ' ON `',gdb.Db,'`.* TO \'',gdb.User,'\'@\'',gdb.Host,'\';'
+        ' ON `',gdb.Db,'`.* TO \\'',gdb.User,'\\'@\\'',gdb.Host,'\\';'
         '</td></tr>')
 FROM mysql.db gdb
 WHERE gdb.Db != ''
@@ -1364,7 +1367,7 @@ SELECT
                 )
             )
         ),
-        ' ON *.* TO \'',gus.User,'\'@\'',gus.Host,'\' REQUIRE ',
+        ' ON *.* TO \\'',gus.User,'\\'@\\'',gus.Host,'\\' REQUIRE ',
         CASE gus.ssl_type
             WHEN 'ANY' THEN
                 'SSL '
