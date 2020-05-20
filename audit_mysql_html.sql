@@ -387,11 +387,11 @@ select '<div align=center><b><font color="WHITE">SECTION MEMOIRE ET CACHES</font
 
 select '<hr>';
 
--- *************************************** Valeurs actuelle des caches
+-- *************************************** Valeurs actuelle des buffers systeme
 select '<table border=1 width=100% bgcolor="WHITE">';
-select '<tr><td bgcolor="#3399CC" align=center colspan=2><table border=0 width=100%><tr><td width=2% Title="Les nouveaux param&egrave;tres ou les param&egrave;tres modifi&eacute;s apparaissent en orange."><img src="data:image/gif;base64,',@info,'"></td><td align=center><font color="WHITE"><b>Valeurs des caches et buffers principaux</b></font></td></tr></table></td></tr>';
+select '<tr><td bgcolor="#3399CC" align=center colspan=2><table border=0 width=100%><tr><td width=2% Title="Les nouveaux param&egrave;tres ou les param&egrave;tres modifi&eacute;s apparaissent en orange."><img src="data:image/gif;base64,',@info,'"></td><td align=center><font color="WHITE"><b>Valeurs des principaux buffers et param&egrave;tres syst&egrave;me</b></font></td></tr></table></td></tr>';
 
-select '<tr><td bgcolor="WHITE" align=center width=40%><b>Cache</b></td><td bgcolor="WHITE" align=center><b>Valeur</b></td></tr>';
+select '<tr><td bgcolor="WHITE" align=center width=40%><b>Buffers et param&egrave;tres</b></td><td bgcolor="WHITE" align=center><b>Valeur</b></td></tr>';
 
 SET @sql = CONCAT("
 -- variables in size
@@ -411,19 +411,13 @@ SELECT concat('<tr><td bgcolor=\"',IF (variable_value <> valeur, 'ORANGE', 'LIGH
 'innodb_thread_concurrency',
 'innodb_flush_method',
 'innodb_file_per_table',
-'read_buffer_size',
-'read_rnd_buffer_size',
-'sort_buffer_size', 
 'thread_stack',
 'thread_cache_size',
-'join_buffer_size',
-'binlog_cache_size',
-'max_heap_table_size',
-'tmp_table_size')
+'binlog_cache_size')
 and variable_name = hist.object_name
    UNION
 SELECT concat('<tr><td bgcolor=\"',IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'),'\" align=left>',variable_name,'</td><td bgcolor=\"',
- IF (substring(@@version,1,3) > 5.7 AND locate(lower(@@version),'mariadb') = 0 AND variable_value <> 'NO', 'RED\" align=right><b> (deprecated since 5.7.20)</b> ',IF (variable_value <> valeur, 'ORANGE\" align=right>', 'LIGHTBLUE\" align=right>')),
+ IF (substring(@@version,1,3) > 5.7 AND locate('mariadb',lower(@@version)) = 0 AND variable_value <> 'NO', 'RED\" align=right> (deprecated since 5.7.20) ',IF (variable_value <> valeur, 'ORANGE\" align=right>', 'LIGHTBLUE\" align=right>')),
  variable_value,'</td></tr>') 
    FROM ", @tblname, ".global_variables
 ,(select histaudit.object_name, histaudit.valeur from histaudit where histaudit.object_type='PARAM' and histaudit.date_audit = @last_audit) hist
@@ -437,7 +431,6 @@ IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'),
    FROM ", @tblname, ".global_variables
    ,(select histaudit.object_name, histaudit.valeur from histaudit where histaudit.object_type='PARAM' and histaudit.date_audit = @last_audit) hist
    where variable_name in (
-'max_connections',
 'table_cache',
 'table_open_cache')
 and variable_name = hist.object_name
@@ -466,6 +459,95 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
+-- *************************************** Mémoire totale utilisée par les buffers systeme
+
+SET @sql = CONCAT("
+SELECT concat('<tr><td bgcolor=\"WHITE\" align=left><b>M&eacute;moire allou&eacute;e par les buffers syst&egrave;me</b></td><td bgcolor=\"',
+ IF (round((kbs.variable_value + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2) > round(hist.valeur/1024/1024,2), 'ORANGE', 'BLUE'),
+'\" align=right><font color=\"WHITE\"><b>',round((kbs.variable_value  + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2),' Mo ',
+ IF (round((kbs.variable_value + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024, 2) > round(hist.valeur/1024/1024,2),
+     concat('(+',
+           round((kbs.variable_value + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2) - round(hist.valeur/1024/1024,2),
+           ')'),
+     ''),
+'</b></font></td></tr>')
+  FROM (select variable_value from ", @tblname, ".global_variables where variable_name = 'key_buffer_size') kbs,
+        (select IF(EXISTS(select variable_value from ", @tblname, ".global_variables where variable_name = 'query_cache_size')=1, (select variable_value from ", @tblname, ".global_variables where variable_name = 'query_cache_size'), 0) variable_value) qcs,
+        (select IF(EXISTS(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_buffer_pool_size')=1,(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_buffer_pool_size'), 0) variable_value) ibps, -- les variables innodb n'existent pas si innodb desactivé
+        (select IF(EXISTS(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_additional_mem_pool_size')=1,(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_additional_mem_pool_size'), 0) variable_value) iamps,
+        (select IF(EXISTS(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_log_buffer_size')=1,(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_log_buffer_size'), 0) variable_value) ilbs,
+(select histaudit.valeur from histaudit where histaudit.object_type='MSIZE' and histaudit.date_audit < DATE_FORMAT(NOW(),'%Y-%m-%d') order by histaudit.date_audit DESC LIMIT 1) hist
+");
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- *************************************** Valeurs actuelle des buffers par session
+select '<tr><td bgcolor="#3399CC" align=center colspan=2><font color="WHITE"><b>Valeurs des buffers par session</b></font></td></tr>';
+
+select '<tr><td bgcolor="WHITE" align=center width=40%><b>Buffer</b></td><td bgcolor="WHITE" align=center><b>Valeur</b></td></tr>';
+SET @sql = CONCAT("
+SELECT concat('<tr><td bgcolor=\"',IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'),'\" align=left>',variable_name,'</td><td bgcolor=\"',
+ IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'),'\" align=right>', IF(variable_value > 1048576, ROUND(variable_value/1024/1024,2), ROUND(variable_value/1024,2)),IF(variable_value > 1048576,' Mo',' Ko'),'</td></tr>') 
+   FROM ", @tblname, ".global_variables
+,(select histaudit.object_name, histaudit.valeur from histaudit where histaudit.object_type='PARAM' and histaudit.date_audit = @last_audit) hist
+   where variable_name in (
+'sort_buffer_size',
+'myisam_sort_buffer_size',
+'join_buffer_size',
+'read_buffer_size',
+'read_rnd_buffer_size',
+'max_heap_table_size',
+'tmp_table_size')
+and variable_name = hist.object_name
+UNION
+SELECT concat('<tr><td bgcolor=\"',IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'),'\" align=left>',variable_name,'</td><td bgcolor=\"',
+ IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'),'\" align=right>', variable_value,'</td></tr>')
+   FROM ", @tblname, ".global_variables
+,(select histaudit.object_name, histaudit.valeur from histaudit where histaudit.object_type='PARAM' and histaudit.date_audit = @last_audit) hist
+   where variable_name in (
+'max_connections')
+and variable_name = hist.object_name
+order by 1
+");
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- *************************************** Mémoire totale utilisée par les buffers par session
+SET @sql = CONCAT("
+SELECT concat('<tr><td bgcolor=\"WHITE\" align=left><b>M&eacute;moire allou&eacute;e par session</b></td><td bgcolor=\"','BLUE','\" align=right><font color=\"WHITE\"><b>', round((sbs.variable_value + msbs.variable_value + rbs.variable_value + jbs.variable_value + rrbs.variable_value + tts.variable_value)/1024/1024,2),' Mo ',
+'</b></font></td></tr>')
+  FROM (select variable_value from ", @tblname, ".global_variables where variable_name = 'SORT_BUFFER_SIZE') sbs,
+       (select variable_value from ", @tblname, ".global_variables where variable_name = 'MYISAM_SORT_BUFFER_SIZE') msbs,
+       (select variable_value from ", @tblname, ".global_variables where variable_name = 'READ_BUFFER_SIZE') rbs,
+       (select variable_value from ", @tblname, ".global_variables where variable_name = 'JOIN_BUFFER_SIZE') jbs,
+       (select variable_value from ", @tblname, ".global_variables where variable_name = 'READ_RND_BUFFER_SIZE') rrbs,
+       (select variable_value from ", @tblname, ".global_variables where variable_name = 'TMP_TABLE_SIZE') tts
+");
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- *************************************** Mémoire totale utilisée par les buffers par MAX session
+SET @sql = CONCAT("
+SELECT concat('<tr><td bgcolor=\"WHITE\" align=left><b>M&eacute;moire allou&eacute;e pour le max sessions (* MAX_CONNECTIONS)</b></td><td bgcolor=\"','BLUE','\" align=right><font color=\"WHITE\"><b>', round(((sbs.variable_value + msbs.variable_value + rbs.variable_value + jbs.variable_value + rrbs.variable_value + tts.variable_value) * mc.variable_value)/1024/1024,2),' Mo ',
+'</b></font></td></tr>')
+  FROM (select variable_value from ", @tblname, ".global_variables where variable_name = 'SORT_BUFFER_SIZE') sbs,
+       (select variable_value from ", @tblname, ".global_variables where variable_name = 'MYISAM_SORT_BUFFER_SIZE') msbs,
+       (select variable_value from ", @tblname, ".global_variables where variable_name = 'READ_BUFFER_SIZE') rbs,
+       (select variable_value from ", @tblname, ".global_variables where variable_name = 'JOIN_BUFFER_SIZE') jbs,
+       (select variable_value from ", @tblname, ".global_variables where variable_name = 'READ_RND_BUFFER_SIZE') rrbs,
+       (select variable_value from ", @tblname, ".global_variables where variable_name = 'TMP_TABLE_SIZE') tts,
+       (select variable_value from ", @tblname, ".global_variables where variable_name = 'MAX_CONNECTIONS') mc
+");
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+select '</table>';
+select '<br>';
+
 -- ***************** Historique caches *****************
 delete from histaudit where date_audit = DATE_FORMAT(NOW(),'%Y-%m-%d') and object_type='PARAM';
 
@@ -491,6 +573,7 @@ insert into histaudit SELECT DATE_FORMAT(NOW(),'%Y-%m-%d'), 'PARAM', variable_na
 'sort_buffer_size', 
 'thread_stack',
 'join_buffer_size',
+'myisam_sort_buffer_size',
 'binlog_cache_size',
 'max_heap_table_size',
 'tmp_table_size',
@@ -502,50 +585,30 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- *************************************** Mémoire totale utilisée
-
-SET @sql = CONCAT("
-SELECT concat('<tr><td bgcolor=\"WHITE\" align=left><b>M&eacute;moire globale utilis&eacute;e par les buffers</b></td><td bgcolor=\"',
- IF (round((kbs.variable_value + IF(tts.variable_value > mhts.variable_value, mhts.variable_value, tts.variable_value) + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2) > round(hist.valeur/1024/1024,2), 'ORANGE', 'BLUE'),
-'\" align=right><font color=\"WHITE\"><b>',round((kbs.variable_value + IF(tts.variable_value > mhts.variable_value, mhts.variable_value, tts.variable_value) + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2),' Mo ',
- IF (round((kbs.variable_value + IF(tts.variable_value > mhts.variable_value, mhts.variable_value, tts.variable_value) + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024, 2) > round(hist.valeur/1024/1024,2),
-     concat('(+',
-           round((kbs.variable_value + IF(tts.variable_value > mhts.variable_value, mhts.variable_value, tts.variable_value) + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2) - round(hist.valeur/1024/1024,2),
-           ')'),
-     ''),
-'</b></font></td></tr>')
-  FROM (select variable_value from ", @tblname, ".global_variables where variable_name = 'key_buffer_size') kbs,
-        (select variable_value from ", @tblname, ".global_variables where variable_name = 'max_heap_table_size') mhts,
-        (select variable_value from ", @tblname, ".global_variables where variable_name = 'tmp_table_size') tts,
-        (select variable_value from ", @tblname, ".global_variables where variable_name = 'query_cache_size') qcs,
-        (select IF(EXISTS(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_buffer_pool_size')=1,(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_buffer_pool_size'), 0) variable_value) ibps, -- les variables innodb n'existent pas si innodb desactivé
-        (select IF(EXISTS(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_additional_mem_pool_size')=1,(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_additional_mem_pool_size'), 0) variable_value) iamps,
-        (select IF(EXISTS(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_log_buffer_size')=1,(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_log_buffer_size'), 0) variable_value) ilbs,
-(select histaudit.valeur from histaudit where histaudit.object_type='MSIZE' and histaudit.date_audit < DATE_FORMAT(NOW(),'%Y-%m-%d') order by histaudit.date_audit DESC LIMIT 1) hist
-");
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- AJOUTER TABLEAU MEMOIRE PAR SESSION
--- + TOTAL MULTIPLIE PAR MAX_CONNECTIONS_USED
-
-select '</table>';
-select '<br>';
-
 -- ***************** Historique memoire total *****************
 delete from histaudit where date_audit = DATE_FORMAT(NOW(),'%Y-%m-%d') and object_type='MSIZE';
 
 SET @sql = CONCAT("
-insert into histaudit SELECT DATE_FORMAT(NOW(),'%Y-%m-%d'), 'MSIZE', 'total server memory', (kbs.variable_value + IF(tts.variable_value > mhts.variable_value, mhts.variable_value, tts.variable_value) + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(iampi.variable_value IS NOT NULL, iampi.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))
+insert into histaudit SELECT DATE_FORMAT(NOW(),'%Y-%m-%d'), 'MSIZE', 'total server memory', (kbs.variable_value + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(iampi.variable_value IS NOT NULL, iampi.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))
   FROM (select variable_value from ", @tblname, ".global_variables where variable_name = 'key_buffer_size') kbs,
-        (select variable_value from ", @tblname, ".global_variables where variable_name = 'max_heap_table_size') mhts,
-        (select variable_value from ", @tblname, ".global_variables where variable_name = 'tmp_table_size') tts,
         (select variable_value from ", @tblname, ".global_variables where variable_name = 'query_cache_size') qcs,
         (select IF(EXISTS(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_buffer_pool_size')=1,(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_buffer_pool_size'), 0) variable_value) ibps, -- les variables innodb n'existent pas si innodb desactivé
         (select IF(EXISTS(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_additional_mem_pool_size')=1,(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_additional_mem_pool_size'), 0) variable_value) iamps,
         (select IF(EXISTS(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_buffer_pool_instances')=1,(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_buffer_pool_instances'), 0) variable_value) iampi,
         (select IF(EXISTS(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_log_buffer_size')=1,(select variable_value from ", @tblname, ".global_variables where variable_name = 'innodb_log_buffer_size'), 0) variable_value) ilbs
+");
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+SET @sql = CONCAT("
+insert into histaudit SELECT DATE_FORMAT(NOW(),'%Y-%m-%d'), 'MSIZE', 'total max sessions memory', (sbs.variable_value + msbs.variable_value + rbs.variable_value + jbs.variable_value + rrbs.variable_value + tts.variable_value)
+  FROM (select variable_value from ", @tblname, ".global_variables where variable_name = 'SORT_BUFFER_SIZE') sbs,
+       (select variable_value from ", @tblname, ".global_variables where variable_name = 'MYISAM_SORT_BUFFER_SIZE') msbs,
+       (select variable_value from ", @tblname, ".global_variables where variable_name = 'READ_BUFFER_SIZE') rbs,
+       (select variable_value from ", @tblname, ".global_variables where variable_name = 'JOIN_BUFFER_SIZE') jbs,
+       (select variable_value from ", @tblname, ".global_variables where variable_name = 'READ_RND_BUFFER_SIZE') rrbs,
+       (select variable_value from ", @tblname, ".global_variables where variable_name = 'TMP_TABLE_SIZE') tts,
+       (select variable_value from ", @tblname, ".global_variables where variable_name = 'MAX_CONNECTIONS') mc
 ");
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
@@ -635,7 +698,7 @@ SET @sql = CONCAT("
 SELECT IF(q.variable_value = 'YES' AND v.variable_value > 0,
         IF (sqch.variable_value > 0 AND sq.variable_value > 0,
 		  concat('<tr><td bgcolor=\"LIGHTBLUE\" align=left>','Ratio QC hits','</td><td bgcolor=\"LIGHTBLUE\" align=right>', sqch.variable_value,' hits</td><td bgcolor=\"',IF (round((sqch.variable_value/(sqch.variable_value+sq.variable_value))*100,0) <= 50,'ORANGE','LIGHTBLUE'),'\" align=right>', round((sqch.variable_value/(sqch.variable_value+sq.variable_value))*100,2),'% de ', sq.variable_value, ' requ&ecirc;tes cachables','</td></tr>'),
-          '<tr><td bgcolor=\"ORANGE\">Ratio QC hits</td><td bgcolor=\"ORANGE\">0</td><td bgcolor=\"ORANGE\" align=center>Aucune requ&ecirc;te sur la p&eacute;riode</td></tr>'),
+          '<tr><td bgcolor=\"ORANGE\">Ratio QC hits</td><td bgcolor=\"ORANGE\" align=right>0</td><td bgcolor=\"ORANGE\" align=center>Aucune requ&ecirc;te sur la p&eacute;riode</td></tr>'),
 		'')
 	FROM ", @tblname, ".global_status sqch, ", @tblname, ".global_status sq, ", @tblname, ".global_variables v, ", @tblname, ".global_variables q
 	WHERE sqch.variable_name = 'Qcache_hits'
@@ -916,7 +979,7 @@ DEALLOCATE PREPARE stmt;
 
 SET @sql = CONCAT("
 select IF(sq.variable_value = 'ON',
-	concat('<tr><td bgcolor=\"LIGHTBLUE\" align=left>Nombre slow queries (>', round(gv.variable_value,2), ' s)</td><td bgcolor=\"LIGHTBLUE\" align=right>', gs.variable_value, '</td><tr>'),
+	concat('<tr><td bgcolor=\"LIGHTBLUE\" align=left>Nombre slow queries (>', round(gv.variable_value,2), ' s)</td><td bgcolor=\"', IF (gs.variable_value > 0, 'ORANGE', 'LIGHTBLUE'), '\" align=right>', gs.variable_value, '</td><tr>'),
 	'')
   FROM ", @tblname, ".global_status gs, ", @tblname, ".global_variables gv, ", @tblname, ".global_variables sq
   where gs.variable_name = 'Slow_queries' 
@@ -941,7 +1004,7 @@ DEALLOCATE PREPARE stmt;
 
 SET @sql = CONCAT("
 select IF(sq.variable_value = 'ON',
-	concat('<tr><td bgcolor=\"WHITE\" align=left>Ratio (slow queries/requ&ecirc;tes)</td><td bgcolor=\"LIGHTBLUE\" align=right>', round((gs.variable_value * 100) / gsq.variable_value, 2), '%</td><tr>'),
+	concat('<tr><td bgcolor=\"WHITE\" align=left>Ratio (slow queries/requ&ecirc;tes)</td><td bgcolor=\"', IF (round((gs.variable_value * 100) / gsq.variable_value, 2) > 1, 'ORANGE', 'LIGHTBLUE'), '\" align=right>', round((gs.variable_value * 100) / gsq.variable_value, 2), '%</td><tr>'),
 	'')
   FROM ", @tblname, ".global_status gs, ", @tblname, ".global_status gsq, ", @tblname, ".global_variables sq
   where gs.variable_name = 'Slow_queries' 
@@ -1126,11 +1189,17 @@ select '<br>';
  select '<div align=center><b><font color="WHITE">SECTION UTILISATEURS ET DROITS</font></b></div>';
 
  select '<hr>';
+-- TODO : for mysql < 5.7 : col "password". For mysql => 5.7 : col "authentication_string"
 -- *************************************** Liste des utilisateurs
 select '<table border=1 width=100% bgcolor="WHITE">';
 select '<tr><td bgcolor="#3399CC" align=center colspan=3><font color="WHITE"><b>Liste des utilisateurs</b></font></td></tr>';
 
-select concat('<tr><td bgcolor="LIGHTBLUE" align=left>','\'', user, '\'','@','\'', host, '\'','</td></tr>') from mysql.user;
+SET @sql = IF(substring(@@version,1,3) < 5.7 AND locate(lower(@@version),'mariadb') = 0,
+   "select concat('<tr><td bgcolor=\"LIGHTBLUE\" align=left>','\\'', user, '\\'','@','\\'', host, '\\'', '<!-- ', Password, ' -->','</td></tr>') from mysql.user WHERE User != ''",
+   "select concat('<tr><td bgcolor=\"LIGHTBLUE\" align=left>','\\'', user, '\\'','@','\\'', host, '\\'', '<!-- ', authentication_string, ' -->','</td></tr>') from mysql.user WHERE User != ''");
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 select '</table>';
 select '<br>';
@@ -1200,7 +1269,7 @@ SELECT
         ' ON `',gdb.Db,'`.* TO \\'',gdb.User,'\\'@\\'',gdb.Host,'\\';'
         '</td></tr>')
 FROM mysql.db gdb
-WHERE gdb.Db != ''
+WHERE gdb.Db != '' AND gdb.User != ''
 
 UNION
 
@@ -1267,7 +1336,7 @@ SELECT
         ';',
         '</td></tr>')
 FROM mysql.user gus
-WHERE gus.Password != ''",
+WHERE gus.User != ''",
 
 "SELECT
     CONCAT('<tr><td bgcolor=\"LIGHTBLUE\" align=left>',
@@ -1322,7 +1391,7 @@ SELECT
         ' ON `',gdb.Db,'`.* TO \\'',gdb.User,'\\'@\\'',gdb.Host,'\\';'
         '</td></tr>')
 FROM mysql.db gdb
-WHERE gdb.Db != ''
+WHERE gdb.Db != '' AND gdb.User != ''
 
 UNION
 
@@ -1390,7 +1459,7 @@ SELECT
         ';',
         '</td></tr>')
 FROM mysql.user gus
-WHERE gus.Password != ''");
+WHERE gus.User != ''");
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;

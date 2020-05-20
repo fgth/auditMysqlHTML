@@ -11,6 +11,10 @@
           voir si identique : key_buffer_size + query_cache_size + innodb_buffer_pool_size + innodb_additional_mem_pool_size + innodb_log_buffer_size + Max_used_connections * (read_buffer_size + read_rnd_buffer_size + sort_buffer_size+ join_buffer_size+ binlog_cache_size + thread_stack + tmp_table_size)
           global buffers and sessions buffers : http://ronaldbradford.com/blog/dont-assume-per-session-buffers-2010-03-08/
 -- voir le calcul proposé sur https://www.mysqlcalculator.com/ (ATTENTION BUG : tmp_table_size doit être inclus PAR SESSION et non sur la mémoire global. ça change tout!
+-- TODO : ajouter un "Tips" pour indiquer que le hash password est caché dans le html
+
+-- A CORRIGER : MAX_CONNECTION doit être placé en fin de tableau (et en italique ?), il n'entre pas dans le total par session
+
 
 -- TODO : ajouter info "performance_schema ON or OFF"
 -- TODO : ajouter une information indiquant INNODB actif mais non utilisé
