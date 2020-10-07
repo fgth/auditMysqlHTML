@@ -26,6 +26,7 @@ SET @info := 'R0lGODlhFAAUAOfAAD+JSDyVQEqTTFqTZkedQ0eeQ1CjRVKlRmScdWaccGibdVepRm
 -- set table name for global_variables and global_status by version
 -- < 5.6.7 : INFORMATION_SCHEMA
 -- >= 5.6.7 : PERFORMANCE_SCHEMA
+-- then in script, use "SET", "PREPARE" and "EXECUTE" to format sql string with this variable before executing it
 SET @tblname = IF (SUBSTRING_INDEX(@@VERSION , '.' , 1) >= 8, 
   'PERFORMANCE_SCHEMA', 
   IF (SUBSTRING(@@VERSION , LOCATE( '.' , @@VERSION )+1 , LOCATE( '.' , @@VERSION )-1 ) < 7,
@@ -64,7 +65,7 @@ select '<table border=0 width=90% bgcolor="#003366" align=center><tr><td>';
 select '<table border=1 width=100% bgcolor="WHITE">';
 select '<tr><td bgcolor="#3399CC" align=center>';
 -- select concat('<font color=WHITE size=+2><b>Audit MYSQL (',@@hostname,':',variable_value,') le ',date_format(sysdate(),'%d/%m/%Y'),'</b>') from INFORMATION_SCHEMA.global_variables where variable_name = 'port';
-SET @sql = CONCAT("select concat('<font color=WHITE size=+2><b>Audit MYSQL (', @@hostname , ':', variable_value, ') le ', date_format(sysdate() ,'%d/%m/%Y'),'</b></font><font color=WHITE size=+1> - script ', @script_version, ' -</font>') from ", @tblname, ".global_variables where variable_name = 'port'");
+SET @sql = CONCAT("select concat('<font color=WHITE size=+2><b>Audit MYSQL (', @@hostname , ':', variable_value, ') le ', date_format(sysdate() ,'%d/%m/%Y'),'</b></font><font color=WHITE size=+1> (', @script_version, ')</font>') from ", @tblname, ".global_variables where variable_name = 'port'");
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
@@ -200,8 +201,24 @@ insert into histaudit SELECT DATE_FORMAT(NOW(),'%Y-%m-%d'), 'VERS', 'OSversion',
 select '<br/><table border=1 width=100% bgcolor="WHITE">';
 select '<tr><td bgcolor="#3399CC" align=center colspan=2><font color="WHITE"><b>Ratio reads / writes</b></font></td></tr>';
 
--- TODO : variables Com_% no more exist in v8 !
-SET @sql = CONCAT("
+-- Variables Com_% are no more in global_status in v8, but in events_statements_summary_global_by_event_name.
+SET @sql = IF (substring(@@version,1,1) >= 8,
+CONCAT("
+SELECT IF(gsq.variable_value > 0, IF(gss.COUNT_STAR > 0,
+		concat('<tr><td bgcolor=\"WHITE\" align=center width=',ROUND((gss.COUNT_STAR / (gss.COUNT_STAR+gsd.COUNT_STAR+gsi.COUNT_STAR+gsu.COUNT_STAR+gsp.COUNT_STAR))*100, 2),'%><b>READS</b></td><td bgcolor=\"WHITE\" align=center width=',ROUND( 100 - ((gss.COUNT_STAR / (gss.COUNT_STAR+gsd.COUNT_STAR+gsi.COUNT_STAR+gsu.COUNT_STAR+gsp.COUNT_STAR))*100),2),'%><b>WRITES</b></td></tr>',
+		'<tr><td bgcolor=\"#FFFFOO\" align=center><b>', ROUND((gss.COUNT_STAR / (gss.COUNT_STAR+gsd.COUNT_STAR+gsi.COUNT_STAR+gsu.COUNT_STAR+gsp.COUNT_STAR))*100, 2), '%</b></td><td bgcolor=\"#FFBF00\" align=center><b>', ROUND( 100 - ((gss.COUNT_STAR / (gss.COUNT_STAR+gsd.COUNT_STAR+gsi.COUNT_STAR+gsu.COUNT_STAR+gsp.COUNT_STAR))*100),2),'%</b></td></tr>'),
+		'<tr><td bgcolor=\"WHITE\" align=center width=20%><b>READS</b></td><td bgcolor=\"WHITE\" align=center width=80%><b>WRITES</b></td></tr><tr><td td bgcolor=\"LIGHTBLUE\" align=center>0%</td><td bgcolor=\"LIGHTBLUE\" align=center>100%</td></tr>'),
+		'<tr><td bgcolor=\"LIGHTGREY\" align=left>&nbsp; </td></tr>')
+	FROM ", @tblname, ".global_status gsq, ", @tblname, ".events_statements_summary_global_by_event_name gss, ", @tblname, ".events_statements_summary_global_by_event_name gsd,
+	     ", @tblname, ".events_statements_summary_global_by_event_name gsi, ", @tblname, ".events_statements_summary_global_by_event_name gsu, ", @tblname, ".events_statements_summary_global_by_event_name gsp
+	WHERE gsq.variable_name = 'Questions'
+	and gss.EVENT_NAME = 'statement/sql/select'
+	and gsd.EVENT_NAME = 'statement/sql/delete'
+	and gsi.EVENT_NAME = 'statement/sql/insert'
+	and gsu.EVENT_NAME = 'statement/sql/update'
+	and gsp.EVENT_NAME = 'statement/sql/insert_select'
+"),
+CONCAT("
 SELECT IF(gsq.variable_value > 0, IF(gss.variable_value > 0,
 		concat('<tr><td bgcolor=\"WHITE\" align=center width=',ROUND((gss.variable_value / (gss.variable_value+gsd.variable_value+gsi.variable_value+gsu.variable_value+gsp.variable_value))*100, 2),'%><b>READS</b></td><td bgcolor=\"WHITE\" align=center width=',ROUND( 100 - ((gss.variable_value / (gss.variable_value+gsd.variable_value+gsi.variable_value+gsu.variable_value+gsp.variable_value))*100),2),'%><b>WRITES</b></td></tr>',
 		'<tr><td bgcolor=\"#FFFFOO\" align=center><b>', ROUND((gss.variable_value / (gss.variable_value+gsd.variable_value+gsi.variable_value+gsu.variable_value+gsp.variable_value))*100, 2), '%</b></td><td bgcolor=\"#FFBF00\" align=center><b>', ROUND( 100 - ((gss.variable_value / (gss.variable_value+gsd.variable_value+gsi.variable_value+gsu.variable_value+gsp.variable_value))*100),2),'%</b></td></tr>'),
@@ -215,7 +232,8 @@ SELECT IF(gsq.variable_value > 0, IF(gss.variable_value > 0,
 	and gsi.variable_name = 'Com_insert'
 	and gsu.variable_name = 'Com_update'
 	and gsp.variable_name = 'Com_replace'
-");
+"));
+
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
@@ -400,7 +418,6 @@ SELECT concat('<tr><td bgcolor=\"',IF (variable_value <> valeur, 'ORANGE', 'LIGH
    FROM ", @tblname, ".global_variables
 ,(select histaudit.object_name, histaudit.valeur from histaudit where histaudit.object_type='PARAM' and histaudit.date_audit = @last_audit) hist
    where variable_name in (
-'query_cache_type',
 'query_cache_size',
 'query_cache_limit',
 'key_buffer_size',
@@ -408,9 +425,6 @@ SELECT concat('<tr><td bgcolor=\"',IF (variable_value <> valeur, 'ORANGE', 'LIGH
 'innodb_additional_mem_pool_size',
 'innodb_log_buffer_size',
 'innodb_log_file_size',
-'innodb_thread_concurrency',
-'innodb_flush_method',
-'innodb_file_per_table',
 'thread_stack',
 'thread_cache_size',
 'binlog_cache_size')
@@ -431,6 +445,10 @@ IF (variable_value <> valeur, 'ORANGE', 'LIGHTBLUE'),
    FROM ", @tblname, ".global_variables
    ,(select histaudit.object_name, histaudit.valeur from histaudit where histaudit.object_type='PARAM' and histaudit.date_audit = @last_audit) hist
    where variable_name in (
+'query_cache_type',
+'innodb_flush_method',
+'innodb_file_per_table',
+'innodb_thread_concurrency',
 'table_cache',
 'table_open_cache')
 and variable_name = hist.object_name
@@ -461,10 +479,12 @@ DEALLOCATE PREPARE stmt;
 
 -- *************************************** Mémoire totale utilisée par les buffers systeme
 
+-- TODO : Calcul mémoire système (l.481) +/- semble erroné en v8
+
 SET @sql = CONCAT("
 SELECT concat('<tr><td bgcolor=\"WHITE\" align=left><b>M&eacute;moire allou&eacute;e pour les buffers syst&egrave;me</b></td><td bgcolor=\"',
  IF (round((kbs.variable_value + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2) > round(hist.valeur/1024/1024,2), 'ORANGE', 'BLUE'),
-'\" align=right><font color=\"',IF (round((kbs.variable_value + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2) > round(hist.valeur/1024/1024,2), 'BLACK', 'WHITE'), ,'\"><b>',round((kbs.variable_value  + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2),' Mo ',
+'\" align=right><font color=\"',IF (round((kbs.variable_value + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2) > round(hist.valeur/1024/1024,2), 'BLACK', 'WHITE'), '\"><b>',round((kbs.variable_value  + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2),' Mo ',
  IF (round((kbs.variable_value + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024, 2) > round(hist.valeur/1024/1024,2),
      concat('(+',
            round((kbs.variable_value + IF(ibps.variable_value IS NOT NULL, ibps.variable_value, 0) + IF(iamps.variable_value IS NOT NULL, iamps.variable_value, 0) + IF(ilbs.variable_value IS NOT NULL, ilbs.variable_value, 0) + IF(qcs.variable_value IS NOT NULL, qcs.variable_value, 0))/1024/1024,2) - round(hist.valeur/1024/1024,2),
